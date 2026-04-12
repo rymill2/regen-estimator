@@ -1,0 +1,6 @@
+name = "regen-estimator"
+compatibility_date = "2026-04-12"
+
+[assets]
+directory = "."
+not_found_handling = "single-page-application"

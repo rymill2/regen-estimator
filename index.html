@@ -4,7 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Regen Estimator</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#3d2b1f">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --soil: #3d2b1f;
@@ -1100,8 +1104,26 @@ document.querySelectorAll('.modal-backdrop').forEach(bd => {
   bd.addEventListener('click', e => { if (e.target === bd) bd.classList.remove('open'); });
 });
 
+// ==================== SUPABASE ====================
+// TODO: replace with your project's URL and anon key after creating a Supabase project
+// These are safe to commit — the anon key is public by design; RLS policies protect your data.
+const SUPABASE_URL  = 'https://rhwhfhbkzgeedwhswtel.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_2O-OQUCAb1lNAx1zLKpRig_A6sB1eLI';
+
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // ==================== INIT ====================
 updateStats();
+
+// ==================== SERVICE WORKER ====================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(err => {
+      console.warn('SW registration failed:', err);
+    });
+  });
+}
 </script>
 </body>
 </html>
