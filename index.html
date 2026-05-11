@@ -9,6 +9,7 @@
 <meta name="theme-color" content="#3d2b1f">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
   :root {
     --soil: #3d2b1f;
@@ -574,9 +575,8 @@
     <div class="modal-body" id="preview-body"></div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-preview'); document.getElementById('modal-estimate').classList.add('open')">← Edit</button>
-      <button class="btn" onclick="printEstimatePDF()" style="margin-right:auto">Print / PDF</button>
-      <input type="email" id="send-email" placeholder="Send to email..." style="width:220px">
-      <button class="btn btn-straw" onclick="submitEstimate()">Send Estimate ✉</button>
+      <button class="btn" onclick="copyEstimateSummary()" style="margin-right:auto">Copy Summary</button>
+      <button class="btn btn-straw" onclick="downloadEstimatePDF()">Download PDF</button>
     </div>
   </div>
 </div>
@@ -1237,34 +1237,63 @@ function previewEstimate() {
   openModal('modal-preview');
 }
 
-function printEstimatePDF() {
-  const content = document.getElementById('preview-body').innerHTML;
-  const printArea = document.getElementById('print-area');
-  printArea.innerHTML = content;
-  printArea.style.display = 'block';
-  window.print();
-  printArea.style.display = 'none';
-  printArea.innerHTML = '';
-}
-
-function submitEstimate() {
-  const email = document.getElementById('send-email').value.trim();
-  if (!email) { toast('Please enter an email address.'); return; }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Please enter a valid email.'); return; }
+function downloadEstimatePDF() {
+  const el = document.querySelector('#preview-body .estimate-preview');
+  if (!el) return;
   const obj = collectEstimate('sent');
   if (!obj) return;
-  renderEstimatesTable();
-  updateStats();
-  const sub  = encodeURIComponent(`Estimate from ${settings.bizname || 'Regen Estimator'}`);
-  const body = encodeURIComponent(
-    `Hi,\n\nPlease find your estimate below.\n\nClient: ${obj.client}\nDate: ${obj.date}\n\n` +
-    currentLineItems.filter(i=>i.qty>0).map(i=>`${i.name} x${i.qty} @ $${fmtMoney(i.unitPrice)} = $${fmtMoney(i.qty*i.unitPrice)}`).join('\n') +
-    `\n\nTotal: $${fmtMoney(obj.total)}\n\n${obj.notes||''}\n\nThank you for your business.`
-  );
-  window.open(`mailto:${email}?subject=${sub}&body=${body}`);
-  closeModal('modal-preview');
-  toast('Email client opened. Estimate marked as sent.');
-  renderDashboard();
+  const filename = `estimate-${obj.client.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${obj.date || todayStr()}.pdf`;
+  html2pdf().set({
+    margin: 12,
+    filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+  }).from(el).save().then(() => {
+    renderEstimatesTable();
+    updateStats();
+    renderDashboard();
+    closeModal('modal-preview');
+    toast('PDF downloaded. Attach it to your email and send.');
+  });
+}
+
+function copyEstimateSummary() {
+  const client  = document.getElementById('est-client').value.trim();
+  const email   = document.getElementById('est-client-email').value.trim();
+  const date    = document.getElementById('est-date').value;
+  const valid   = document.getElementById('est-valid').value;
+  const tax     = parseFloat(document.getElementById('est-tax').value) || 0;
+  const notes   = document.getElementById('est-notes').value.trim();
+  const subtotal = calcSubtotal();
+  const total    = subtotal * (1 + tax / 100);
+  const biz = settings.bizname || 'Regen Estimator';
+  const lines = currentLineItems.filter(i => i.qty > 0);
+  const pad = (s, n) => String(s).padEnd(n);
+
+  let text = `${biz.toUpperCase()} — ESTIMATE\n`;
+  text += `${'─'.repeat(48)}\n`;
+  text += `Prepared for: ${client}${email ? ' <' + email + '>' : ''}\n`;
+  text += `Date: ${date || '—'}${valid ? '   Valid until: ' + valid : ''}\n`;
+  text += `${'─'.repeat(48)}\n\n`;
+  lines.forEach(i => {
+    const lineTotal = '$' + fmtMoney(i.qty * i.unitPrice);
+    text += `${pad(i.name || 'Item', 28)} x${i.qty}  @ $${fmtMoney(i.unitPrice)}  =  ${lineTotal}\n`;
+    if (i.desc) text += `  ${i.desc}\n`;
+  });
+  text += `\n${'─'.repeat(48)}\n`;
+  if (tax > 0) {
+    text += `Subtotal: $${fmtMoney(subtotal)}\n`;
+    text += `Tax (${tax}%): $${fmtMoney(subtotal * tax / 100)}\n`;
+  }
+  text += `TOTAL: $${fmtMoney(total)}\n`;
+  if (notes) text += `\nNotes: ${notes}\n`;
+
+  navigator.clipboard.writeText(text).then(() => {
+    toast('Summary copied — open your email, paste, and attach the PDF.');
+  }).catch(() => {
+    toast('Could not access clipboard. Try downloading the PDF instead.');
+  });
 }
 
 // ==================== UTILS ====================
