@@ -1,98 +1,95 @@
-const CACHE_NAME = 'regen-estimator-v1';
-const PRECACHE_URLS = [
+const CACHE = 'regen-estimator-v2';
+
+// Precached at install — all served locally, available immediately offline
+const PRECACHE = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.svg',
+  '/html2pdf.min.js',
 ];
 
-// Cross-origin resources to cache at runtime (network-first, cache fallback)
-const RUNTIME_CACHE_ORIGINS = [
-  'https://cdn.jsdelivr.net',
+// CDN origins to runtime-cache (stale-while-revalidate)
+const CDN_ORIGINS = [
+  'https://cdn.jsdelivr.net',    // Supabase JS
   'https://fonts.googleapis.com',
   'https://fonts.gstatic.com',
+  'https://cdnjs.cloudflare.com',
 ];
 
-self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(PRECACHE_URLS))
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE)
+      .then(cache => cache.addAll(PRECACHE))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', event => {
-  const { request } = event;
-  const url = new URL(request.url);
+self.addEventListener('fetch', e => {
+  const req = e.request;
+  if (req.method !== 'GET') return;
+  if (!req.url.startsWith('http')) return;
 
-  if (request.method !== 'GET') return;
-
+  const url = new URL(req.url);
   const isSameOrigin = url.origin === self.location.origin;
-  const isCacheableThirdParty = RUNTIME_CACHE_ORIGINS.some(o => url.origin === o);
+  const isCDN = CDN_ORIGINS.some(o => url.origin === o);
 
-  if (!isSameOrigin && !isCacheableThirdParty) return;
+  if (!isSameOrigin && !isCDN) return;
 
-  event.respondWith(
-    caches.open(CACHE_NAME).then(async cache => {
-      // Navigation (HTML): network first, fall back to cached index.html
-      if (request.mode === 'navigate') {
+  e.respondWith(
+    caches.open(CACHE).then(async cache => {
+      const cached = await cache.match(req);
+
+      if (req.mode === 'navigate') {
+        // Navigation: network first so the latest shell is always fetched when online
         try {
-          const networkResponse = await fetch(request);
-          cache.put(request, networkResponse.clone());
-          return networkResponse;
+          const fresh = await fetch(req);
+          if (fresh.ok) cache.put(req, fresh.clone());
+          return fresh;
         } catch {
-          return (await cache.match('/index.html')) || Response.error();
+          return cached || caches.match('/index.html');
         }
       }
 
-      // Third-party CDN resources: cache first, network fallback + update
-      if (isCacheableThirdParty) {
-        const cached = await cache.match(request);
-        if (cached) {
-          fetch(request).then(r => r.ok && cache.put(request, r)).catch(() => {});
-          return cached;
-        }
-        try {
-          const networkResponse = await fetch(request);
-          if (networkResponse.ok) cache.put(request, networkResponse.clone());
-          return networkResponse;
-        } catch {
-          return Response.error();
-        }
-      }
-
-      // Same-origin assets: cache first, network fallback + background revalidate
-      const cached = await cache.match(request);
       if (cached) {
-        fetch(request).then(r => r.ok && cache.put(request, r)).catch(() => {});
+        // Stale-while-revalidate: return cached immediately, refresh in background
+        fetch(req).then(r => {
+          if (r && (r.ok || r.type === 'opaque')) cache.put(req, r);
+        }).catch(() => {});
         return cached;
       }
+
+      // Not cached yet — fetch, cache, and return
       try {
-        const networkResponse = await fetch(request);
-        if (networkResponse.ok) cache.put(request, networkResponse.clone());
-        return networkResponse;
+        const fresh = await fetch(req);
+        if (fresh && (fresh.ok || fresh.type === 'opaque')) {
+          cache.put(req, fresh.clone());
+        }
+        return fresh;
       } catch {
-        return Response.error();
+        // Absolute fallback for navigation
+        if (req.mode === 'navigate') return caches.match('/index.html');
+        return new Response('', { status: 503, statusText: 'Offline' });
       }
     })
   );
 });
 
-// Background Sync: relay flush signal to all open clients
-self.addEventListener('sync', event => {
-  if (event.tag === 'flush-offline-queue') {
-    event.waitUntil(
-      self.clients.matchAll({ type: 'window' }).then(clients => {
-        clients.forEach(client => client.postMessage('flush-offline-queue'));
-      })
+// Relay background-sync signal to open windows
+self.addEventListener('sync', e => {
+  if (e.tag === 'flush-offline-queue') {
+    e.waitUntil(
+      self.clients.matchAll({ type: 'window' }).then(clients =>
+        clients.forEach(c => c.postMessage('flush-offline-queue'))
+      )
     );
   }
 });

@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#3d2b1f">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="/html2pdf.min.js"></script>
 <style>
   :root {
     --soil: #3d2b1f;
@@ -222,6 +222,11 @@
   .picker-qty input { padding: 5px 8px; font-size: 12px; text-align: center; }
   .picker-empty { padding: 36px; text-align: center; color: var(--text-muted); font-size: 13px; }
 
+  /* OFFLINE BADGE */
+  .offline-badge { display: none; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 20px; padding: 4px 10px; }
+  .offline-badge.visible { display: flex; }
+  .offline-dot { width: 7px; height: 7px; border-radius: 50%; background: #d97706; flex-shrink: 0; }
+
   /* PRINT */
   @media print {
     body * { visibility: hidden; }
@@ -273,7 +278,13 @@
   <div class="main">
     <div class="topbar">
       <div class="topbar-title" id="topbar-title">Dashboard</div>
-      <div class="topbar-actions" id="topbar-actions"></div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="offline-badge" id="offline-badge">
+          <div class="offline-dot"></div>
+          Offline — changes saved locally
+        </div>
+        <div class="topbar-actions" id="topbar-actions"></div>
+      </div>
     </div>
     <div class="content">
 
@@ -1589,6 +1600,10 @@ function previewEstimate() {
 }
 
 function downloadEstimatePDF() {
+  if (typeof html2pdf === 'undefined') {
+    toast('PDF library not loaded. Go online once to cache it, then try again.');
+    return;
+  }
   const el = document.querySelector('#preview-body .estimate-preview');
   if (!el) return;
   const obj = collectEstimate('sent');
@@ -1847,13 +1862,31 @@ function renderDevPanel() {
 }
 
 // ==================== SUPABASE ====================
-const SUPABASE_URL     = 'https://rhwhfhbkzgeedwhswtel.supabase.co';
+const SUPABASE_URL      = 'https://rhwhfhbkzgeedwhswtel.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_2O-OQUCAb1lNAx1zLKpRig_A6sB1eLI';
-const { createClient } = supabase;
-const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let db = null;
+try {
+  const { createClient } = supabase;
+  db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+} catch (e) {
+  console.warn('Supabase unavailable — running fully offline.', e);
+}
 
 // ==================== INIT ====================
 updateStats();
+
+// ==================== OFFLINE INDICATOR ====================
+function updateOnlineStatus() {
+  const badge = document.getElementById('offline-badge');
+  if (navigator.onLine) {
+    badge.classList.remove('visible');
+  } else {
+    badge.classList.add('visible');
+  }
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+updateOnlineStatus();
 
 // ==================== SERVICE WORKER ====================
 if ('serviceWorker' in navigator) {
