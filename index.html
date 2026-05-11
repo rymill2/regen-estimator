@@ -184,6 +184,25 @@
   .toggle-row input[type=checkbox] { width: 16px; height: 16px; margin: 0; accent-color: var(--moss); cursor: pointer; flex-shrink: 0; }
   .toggle-row label { margin: 0; font-size: 13px; color: var(--text); font-weight: 400; cursor: pointer; letter-spacing: 0; }
 
+  /* DEV PANEL */
+  .nav-item-dev { border-top: 1px solid rgba(255,255,255,0.06); margin-top: auto; }
+  .nav-item-dev.active { color: #f59e0b; border-left-color: #f59e0b; background: rgba(245,158,11,0.08); }
+  .dev-section { margin-bottom: 24px; }
+  .dev-section h4 { font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
+  .dev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dev-card { background: white; border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); }
+  .dev-card .dev-val { font-size: 28px; font-family: 'Playfair Display', serif; color: var(--soil); }
+  .dev-card .dev-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .dev-action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .dev-btn { width: 100%; padding: 10px 14px; font-size: 12px; border-radius: var(--radius); cursor: pointer; border: 1px solid var(--border); background: white; font-family: 'DM Sans', sans-serif; font-weight: 500; text-align: left; transition: all 0.15s; display: flex; flex-direction: column; gap: 3px; }
+  .dev-btn:hover { background: var(--mist); border-color: var(--clay); }
+  .dev-btn .dev-btn-title { font-size: 13px; color: var(--text); }
+  .dev-btn .dev-btn-sub { font-size: 11px; color: var(--text-muted); }
+  .dev-btn-danger { border-color: #fecaca; background: #fff5f5; }
+  .dev-btn-danger:hover { background: #fee2e2; border-color: var(--danger); }
+  .dev-btn-danger .dev-btn-title { color: var(--danger); }
+  .dev-warning { background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius); padding: 10px 14px; font-size: 12px; color: #92400e; margin-bottom: 16px; }
+
   /* PRINT */
   @media print {
     body * { visibility: hidden; }
@@ -223,6 +242,10 @@
       <div class="nav-item" onclick="showView('settings')" id="nav-settings">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M7.3 1a1 1 0 00-.99.858L6.1 2.9a5 5 0 00-.97.4l-.9-.55a1 1 0 00-1.24.18L1.55 4.38a1 1 0 00-.17 1.24l.55.9a5 5 0 00-.4.97l-1.04.21A1 1 0 00-.5 8.7v1.6a1 1 0 00.858.99l1.04.21a5 5 0 00.4.97l-.55.9a1 1 0 00.18 1.24l1.13 1.44a1 1 0 001.24.17l.9-.55a5 5 0 00.97.4l.21 1.04A1 1 0 007.3 17h1.4a1 1 0 00.99-.858l.21-1.04a5 5 0 00.97-.4l.9.55a1 1 0 001.24-.17l1.13-1.44a1 1 0 00.17-1.24l-.55-.9a5 5 0 00.4-.97l1.04-.21A1 1 0 0016 9.3V7.7a1 1 0 00-.858-.99l-1.04-.21a5 5 0 00-.4-.97l.55-.9a1 1 0 00-.18-1.24L12.92 2.96a1 1 0 00-1.24-.17l-.9.55a5 5 0 00-.97-.4L9.6 1.858A1 1 0 008.7 1H7.3zM8 5.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5z"/></svg>
         Settings
+      </div>
+      <div class="nav-item nav-item-dev" onclick="showView('dev')" id="nav-dev">
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M5.854 4.146a.5.5 0 010 .708L3.707 7l2.147 2.146a.5.5 0 01-.708.708l-2.5-2.5a.5.5 0 010-.708l2.5-2.5a.5.5 0 01.708 0zm4.292 0a.5.5 0 000 .708L12.293 7l-2.147 2.146a.5.5 0 00.708.708l2.5-2.5a.5.5 0 000-.708l-2.5-2.5a.5.5 0 00-.708 0zM7.5 2a.5.5 0 01.473.337l3 8.5a.5.5 0 01-.946.326L9.48 9H6.52l-.547 2.163a.5.5 0 01-.946-.326l3-8.5A.5.5 0 017.5 2zm-.85 6h1.7L7.5 4.8 6.65 8z"/></svg>
+        Dev Tools
       </div>
     </nav>
   </div>
@@ -390,6 +413,82 @@
               <textarea id="setting-notes" placeholder="Payment due within 30 days..." oninput="saveSetting()"></textarea>
             </div>
             <div style="color:var(--moss);font-size:12px;margin-top:8px">✓ Settings auto-saved</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DEV TOOLS -->
+      <div class="view" id="view-dev">
+        <div class="dev-warning">These tools are for development and testing only. Destructive actions cannot be undone.</div>
+
+        <div class="dev-section">
+          <h4>Data Overview</h4>
+          <div class="dev-grid" id="dev-stats"></div>
+        </div>
+
+        <div class="dev-section">
+          <h4>Seed Data</h4>
+          <div class="dev-action-grid">
+            <button class="dev-btn" onclick="devSeedAll()">
+              <span class="dev-btn-title">Seed Everything</span>
+              <span class="dev-btn-sub">Clients, products & estimates</span>
+            </button>
+            <button class="dev-btn" onclick="devSeedClients()">
+              <span class="dev-btn-title">Seed Clients</span>
+              <span class="dev-btn-sub">6 realistic farm clients</span>
+            </button>
+            <button class="dev-btn" onclick="devSeedProducts()">
+              <span class="dev-btn-title">Seed Products</span>
+              <span class="dev-btn-sub">10 regen ag products with overviews</span>
+            </button>
+            <button class="dev-btn" onclick="devSeedEstimates()">
+              <span class="dev-btn-title">Seed Estimates</span>
+              <span class="dev-btn-sub">5 estimates across statuses</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="dev-section">
+          <h4>Reset</h4>
+          <div class="dev-action-grid">
+            <button class="dev-btn dev-btn-danger" onclick="devClearAll()">
+              <span class="dev-btn-title">Clear All Data</span>
+              <span class="dev-btn-sub">Wipes clients, products, estimates</span>
+            </button>
+            <button class="dev-btn dev-btn-danger" onclick="devClearClients()">
+              <span class="dev-btn-title">Clear Clients</span>
+              <span class="dev-btn-sub">Remove all client records</span>
+            </button>
+            <button class="dev-btn dev-btn-danger" onclick="devClearProducts()">
+              <span class="dev-btn-title">Clear Products</span>
+              <span class="dev-btn-sub">Remove all catalog items</span>
+            </button>
+            <button class="dev-btn dev-btn-danger" onclick="devClearEstimates()">
+              <span class="dev-btn-title">Clear Estimates</span>
+              <span class="dev-btn-sub">Remove all estimates</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="dev-section">
+          <h4>Backup & Restore</h4>
+          <div class="dev-action-grid">
+            <button class="dev-btn" onclick="devExport()">
+              <span class="dev-btn-title">Export Snapshot</span>
+              <span class="dev-btn-sub">Download all data as JSON</span>
+            </button>
+            <button class="dev-btn" onclick="document.getElementById('dev-import-file').click()">
+              <span class="dev-btn-title">Import Snapshot</span>
+              <span class="dev-btn-sub">Restore from a JSON file</span>
+            </button>
+          </div>
+          <input type="file" id="dev-import-file" accept=".json" style="display:none" onchange="devImport(event)">
+        </div>
+
+        <div class="dev-section">
+          <h4>localStorage Inspector</h4>
+          <div class="card" style="margin-top:0">
+            <div class="card-body" style="font-family:monospace;font-size:12px" id="dev-storage-inspector"></div>
           </div>
         </div>
       </div>
@@ -610,13 +709,14 @@ function showView(v) {
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('view-' + v).classList.add('active');
   document.getElementById('nav-' + v).classList.add('active');
-  const titles = { dashboard: 'Dashboard', clients: 'Clients', pricing: 'Pricing Catalog', estimates: 'Estimates', settings: 'Settings' };
+  const titles = { dashboard: 'Dashboard', clients: 'Clients', pricing: 'Pricing Catalog', estimates: 'Estimates', settings: 'Settings', dev: 'Dev Tools' };
   document.getElementById('topbar-title').textContent = titles[v] || v;
   if (v === 'pricing') renderPricingTable();
   if (v === 'estimates') renderEstimatesTable();
   if (v === 'clients') renderClientsTable();
   if (v === 'dashboard') renderDashboard();
   if (v === 'settings') loadSettings();
+  if (v === 'dev') renderDevPanel();
 }
 
 // ==================== STATS ====================
@@ -1316,6 +1416,183 @@ function toast(msg, dur=3000) {
 document.querySelectorAll('.modal-backdrop').forEach(bd => {
   bd.addEventListener('click', e => { if (e.target === bd) bd.classList.remove('open'); });
 });
+
+// ==================== DEV TOOLS ====================
+const DEV_CLIENTS = [
+  { name: 'Green Acres Farm',     emails: ['john@greenacresfarm.com', 'office@greenacresfarm.com'], phone: '(555) 012-3401', notes: 'Prefers morning calls. 400 acres corn/soy rotation.' },
+  { name: 'Sunridge Organics',    emails: ['maria@sunridgeorganics.com'],                           phone: '(555) 012-3402', notes: 'Certified organic. No synthetic inputs.' },
+  { name: 'Riverbend Ranch',      emails: ['tom.h@riverbendranch.net'],                             phone: '(555) 012-3403', notes: 'Pasture and hay. Interested in cover crops.' },
+  { name: 'Blue Sky Growers',     emails: ['info@blueskygrow.com', 'derek@blueskygrow.com'],         phone: '(555) 012-3404', notes: 'Vegetable operation, high-value crops.' },
+  { name: 'Millstone Valley Farm',emails: ['dave@millstonevalley.com'],                             phone: '(555) 012-3405', notes: 'Long-term client. Net 30 terms.' },
+  { name: 'Clearwater Ag',        emails: ['clearwaterag@gmail.com'],                               phone: '(555) 012-3406', notes: 'New client 2026. Transitioning to regen.' },
+];
+
+const DEV_PRODUCTS = [
+  { name: 'Compost Tea Concentrate', unit: 'gallon',  price: 45.00, category: 'Liquid',   desc: 'Aerobically brewed compost extract packed with beneficial microorganisms. Apply 2–4 gallons per acre diluted 1:10 with non-chlorinated water. Best applied in early morning or evening. Improves soil biology, nutrient cycling, and plant immunity.' },
+  { name: 'Fish Emulsion 5-1-1',     unit: 'gallon',  price: 32.00, category: 'Liquid',   desc: 'Cold-processed fish emulsion with an N-P-K of 5-1-1. Fast-acting nitrogen source that also supplies trace minerals and amino acids. Apply 2–3 gallons per acre every 3–4 weeks during active growth. Mild odor dissipates within 24 hours.' },
+  { name: 'Kelp Extract',            unit: 'quart',   price: 28.00, category: 'Liquid',   desc: 'Norwegian kelp (Ascophyllum nodosum) cold-processed to preserve natural cytokinins and growth hormones. Stimulates root development and stress tolerance. Use 1 quart per acre as a foliar spray or soil drench. Compatible with most other inputs.' },
+  { name: 'Humic Acid (12%)',        unit: 'gallon',  price: 55.00, category: 'Liquid',   desc: 'Concentrated humic acid derived from leonardite. Improves nutrient uptake, water retention, and cation exchange capacity. Apply 1–2 gallons per acre in-furrow or through irrigation. Particularly effective on sandy or depleted soils.' },
+  { name: 'Biochar Soil Amendment',  unit: '50lb bag',price: 85.00, category: 'Dry',      desc: 'High-surface-area biochar produced at 900°C from sustainably harvested wood. Pre-charged with compost tea. Apply 200–500 lbs per acre and incorporate 4–6 inches deep. Permanent soil carbon addition; improves water holding capacity and microbial habitat.' },
+  { name: 'Mycorrhizal Inoculant',   unit: 'lb',      price: 65.00, category: 'Dry',      desc: 'Blend of 9 endo and 7 ecto mycorrhizal species. Apply directly to seed, transplant roots, or in-furrow at 2–4 oz per 100 row feet. Extends root system reach, improves phosphorus uptake, and enhances drought resilience. Do not use with fungicides.' },
+  { name: 'Calcium-Magnesium Blend', unit: 'gallon',  price: 48.00, category: 'Liquid',   desc: 'Fully soluble calcium (6%) and magnesium (2%) for rapid correction of deficiencies. Strengthens cell walls, improves fruit quality, and reduces blossom end rot. Apply 1–2 gallons per acre as foliar or through drip. pH buffered at 6.5.' },
+  { name: 'Cover Crop Blend',        unit: 'lb',      price: 4.50,  category: 'Seed',     desc: 'Diverse 8-species mix: crimson clover, hairy vetch, winter rye, radish, turnip, sunflower, phacelia, and buckwheat. Seeding rate 20–30 lbs per acre. Fixes nitrogen, breaks compaction, feeds soil biology, and suppresses weeds. Terminated by roller-crimper or frost.' },
+  { name: 'Soil Test Package',       unit: 'test',    price: 95.00, category: 'Service',  desc: 'Comprehensive soil analysis: base saturation, CEC, pH, organic matter, macro and micronutrients, Brix potential, and biological activity index. Results returned within 5 business days with a customized amendment recommendation report.' },
+  { name: 'On-Farm Consultation',    unit: 'hour',    price: 120.00,category: 'Service',  desc: 'In-person field scouting and agronomic consulting. Includes soil assessment, crop observation, and written action plan. Travel within 60 miles included. Additional mileage billed at $0.67/mile. Minimum 2-hour booking.' },
+];
+
+function devBuildEstimates(clientList, productList) {
+  const pick = (arr, n) => arr.slice(0, n);
+  return [
+    {
+      client: clientList[0].name, clientEmail: clientList[0].emails[0],
+      date: '2026-04-01', validUntil: '2026-05-01', taxRate: 6, status: 'sent',
+      notes: 'Net 30. Application scheduled for first week of May.',
+      includeProductDetails: true,
+      lineItems: [
+        { productId: productList[0].id, name: productList[0].name, qty: 10, unitPrice: productList[0].price, unit: productList[0].unit, desc: '' },
+        { productId: productList[1].id, name: productList[1].name, qty: 5,  unitPrice: productList[1].price, unit: productList[1].unit, desc: 'Spring application' },
+        { productId: productList[8].id, name: productList[8].name, qty: 1,  unitPrice: productList[8].price, unit: productList[8].unit, desc: '' },
+      ],
+    },
+    {
+      client: clientList[1].name, clientEmail: clientList[1].emails[0],
+      date: '2026-04-10', validUntil: '2026-05-10', taxRate: 0, status: 'draft',
+      notes: 'Pending soil test results before finalizing.',
+      includeProductDetails: false,
+      lineItems: [
+        { productId: productList[5].id, name: productList[5].name, qty: 3,  unitPrice: productList[5].price, unit: productList[5].unit, desc: '' },
+        { productId: productList[2].id, name: productList[2].name, qty: 8,  unitPrice: productList[2].price, unit: productList[2].unit, desc: 'Foliar program' },
+      ],
+    },
+    {
+      client: clientList[2].name, clientEmail: clientList[2].emails[0],
+      date: '2026-03-15', validUntil: '2026-04-15', taxRate: 0, status: 'sent',
+      notes: '',
+      includeProductDetails: false,
+      lineItems: [
+        { productId: productList[7].id, name: productList[7].name, qty: 500, unitPrice: productList[7].price, unit: productList[7].unit, desc: '20 acres at 25 lbs/acre' },
+        { productId: productList[4].id, name: productList[4].name, qty: 4,   unitPrice: productList[4].price, unit: productList[4].unit, desc: '' },
+      ],
+    },
+    {
+      client: clientList[3].name, clientEmail: clientList[3].emails[0],
+      date: '2026-04-20', validUntil: '2026-05-20', taxRate: 8, status: 'draft',
+      notes: 'Waiting on irrigation schedule from client.',
+      includeProductDetails: true,
+      lineItems: [
+        { productId: productList[3].id, name: productList[3].name, qty: 6,  unitPrice: productList[3].price, unit: productList[3].unit, desc: '' },
+        { productId: productList[6].id, name: productList[6].name, qty: 4,  unitPrice: productList[6].price, unit: productList[6].unit, desc: '' },
+        { productId: productList[9].id, name: productList[9].name, qty: 2,  unitPrice: productList[9].price, unit: productList[9].unit, desc: 'Initial consult + follow-up' },
+      ],
+    },
+    {
+      client: clientList[4].name, clientEmail: clientList[4].emails[0],
+      date: '2026-02-01', validUntil: '2026-03-01', taxRate: 0, status: 'archived',
+      notes: 'Previous season quote. Renewed with updated pricing.',
+      includeProductDetails: false,
+      lineItems: [
+        { productId: productList[0].id, name: productList[0].name, qty: 20, unitPrice: productList[0].price, unit: productList[0].unit, desc: '' },
+        { productId: productList[1].id, name: productList[1].name, qty: 10, unitPrice: productList[1].price, unit: productList[1].unit, desc: '' },
+      ],
+    },
+  ].map(e => {
+    const sub = e.lineItems.reduce((s, i) => s + i.qty * i.unitPrice, 0);
+    return { ...e, id: genId(), subtotal: sub, total: sub * (1 + e.taxRate / 100) };
+  });
+}
+
+function devSeedAll() {
+  devSeedClients(); devSeedProducts();
+  const addedClients  = clients.slice(-DEV_CLIENTS.length);
+  const addedProducts = products.slice(-DEV_PRODUCTS.length);
+  const newEstimates  = devBuildEstimates(addedClients, addedProducts);
+  estimates.push(...newEstimates);
+  save(); renderDevPanel(); toast(`Seeded ${DEV_CLIENTS.length} clients, ${DEV_PRODUCTS.length} products, ${newEstimates.length} estimates.`);
+}
+
+function devSeedClients() {
+  DEV_CLIENTS.forEach(c => clients.push({ id: genId(), ...c }));
+  save(); renderDevPanel(); toast(`${DEV_CLIENTS.length} clients added.`);
+}
+
+function devSeedProducts() {
+  DEV_PRODUCTS.forEach(p => products.push({ id: genId(), ...p, status: 'active' }));
+  save(); renderDevPanel(); toast(`${DEV_PRODUCTS.length} products added.`);
+}
+
+function devSeedEstimates() {
+  if (!clients.length || !products.length) { toast('Seed clients and products first.'); return; }
+  const newEstimates = devBuildEstimates(clients, products);
+  estimates.push(...newEstimates);
+  save(); renderDevPanel(); toast(`${newEstimates.length} estimates added.`);
+}
+
+function devClearAll() {
+  if (!confirm('Clear ALL data — clients, products, and estimates?')) return;
+  clients = []; products = []; estimates = [];
+  save(); renderDevPanel(); toast('All data cleared.');
+}
+function devClearClients()   { if (!confirm('Clear all clients?'))   return; clients   = []; save(); renderDevPanel(); toast('Clients cleared.'); }
+function devClearProducts()  { if (!confirm('Clear all products?'))  return; products  = []; save(); renderDevPanel(); toast('Products cleared.'); }
+function devClearEstimates() { if (!confirm('Clear all estimates?')) return; estimates = []; save(); renderDevPanel(); toast('Estimates cleared.'); }
+
+function devExport() {
+  const snapshot = { clients, products, estimates, settings, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `regen-estimator-backup-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Snapshot exported.');
+}
+
+function devImport(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!confirm(`Import snapshot from ${data.exportedAt || 'unknown date'}? This will overwrite current data.`)) return;
+      if (data.clients)   clients   = data.clients;
+      if (data.products)  products  = data.products;
+      if (data.estimates) estimates = data.estimates;
+      if (data.settings)  settings  = data.settings;
+      nextId = Math.max(...[...clients, ...products, ...estimates].map(x => x.id || 0), nextId) + 1;
+      save(); renderDevPanel(); toast('Snapshot imported successfully.');
+    } catch { toast('Invalid JSON file.'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function renderDevPanel() {
+  const keys = ['regen_clients','regen_products','regen_estimates','regen_settings','regen_nextid'];
+  let totalBytes = 0;
+  const rows = keys.map(k => {
+    const val = localStorage.getItem(k) || '';
+    totalBytes += val.length;
+    return `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--parchment)">
+      <span style="color:var(--moss)">${k}</span>
+      <span style="color:var(--text-muted)">${(val.length / 1024).toFixed(1)} KB</span>
+    </div>`;
+  });
+  document.getElementById('dev-storage-inspector').innerHTML =
+    rows.join('') +
+    `<div style="display:flex;justify-content:space-between;padding:6px 0;font-weight:500">
+      <span>Total</span><span>${(totalBytes / 1024).toFixed(1)} KB</span>
+    </div>`;
+
+  document.getElementById('dev-stats').innerHTML = [
+    { label: 'Clients',   val: clients.length },
+    { label: 'Products',  val: products.filter(p => p.status !== 'archived').length + ' active / ' + products.filter(p => p.status === 'archived').length + ' archived' },
+    { label: 'Estimates', val: estimates.length },
+    { label: 'Drafts',    val: estimates.filter(e => e.status === 'draft').length },
+    { label: 'Sent',      val: estimates.filter(e => e.status === 'sent').length },
+    { label: 'Archived',  val: estimates.filter(e => e.status === 'archived').length },
+  ].map(s => `<div class="dev-card"><div class="dev-val">${s.val}</div><div class="dev-label">${s.label}</div></div>`).join('');
+}
 
 // ==================== SUPABASE ====================
 const SUPABASE_URL     = 'https://rhwhfhbkzgeedwhswtel.supabase.co';
