@@ -179,6 +179,15 @@
   .toggle-row input[type=checkbox] { width: 16px; height: 16px; margin: 0; accent-color: var(--moss); cursor: pointer; flex-shrink: 0; }
   .toggle-row label { margin: 0; font-size: 13px; color: var(--text); font-weight: 400; cursor: pointer; letter-spacing: 0; }
 
+  /* CLIENT DETAIL */
+  .client-detail-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; gap: 16px; }
+  .client-detail-back { font-size: 12px; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 10px; }
+  .client-detail-back:hover { color: var(--moss); }
+  .client-detail-name { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--soil); margin-bottom: 8px; }
+  .client-meta-row { display: flex; flex-wrap: wrap; gap: 20px; font-size: 12px; color: var(--text-muted); }
+  .client-meta-item { display: flex; align-items: center; gap: 5px; }
+  .client-detail-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+
   /* DEV PANEL */
   .nav-item-dev { border-top: 1px solid rgba(255,255,255,0.06); margin-top: auto; }
   .nav-item-dev.active { color: #f59e0b; border-left-color: #f59e0b; background: rgba(245,158,11,0.08); }
@@ -305,29 +314,73 @@
 
       <!-- CLIENTS -->
       <div class="view" id="view-clients">
-        <div class="card">
-          <div class="card-header">
-            <h3>Clients <span id="clients-count" class="badge badge-gray">0</span></h3>
-            <button class="btn btn-sm btn-primary" onclick="openAddClientModal()">+ Add Client</button>
-          </div>
-          <div class="filter-bar">
-            <input type="text" placeholder="Filter by name, email, phone..." oninput="renderClientsTable(this.value)">
-          </div>
-          <div>
-            <table>
-              <thead><tr>
-                <th>Name</th>
-                <th>Emails</th>
-                <th>Phone</th>
-                <th>Notes</th>
-                <th style="text-align:right">Actions</th>
-              </tr></thead>
-              <tbody id="clients-table-body">
-                <tr><td colspan="5" style="text-align:center;padding:36px;color:var(--text-muted)">No clients yet.</td></tr>
-              </tbody>
-            </table>
+
+        <!-- LIST SUB-VIEW -->
+        <div id="clients-list">
+          <div class="card">
+            <div class="card-header">
+              <h3>Clients <span id="clients-count" class="badge badge-gray">0</span></h3>
+              <button class="btn btn-sm btn-primary" onclick="openAddClientModal()">+ Add Client</button>
+            </div>
+            <div class="filter-bar">
+              <input type="text" placeholder="Filter by name, email, phone..." oninput="renderClientsTable(this.value)">
+            </div>
+            <div>
+              <table>
+                <thead><tr>
+                  <th>Name</th>
+                  <th>Emails</th>
+                  <th>Phone</th>
+                  <th>Estimates</th>
+                  <th style="text-align:right">Actions</th>
+                </tr></thead>
+                <tbody id="clients-table-body">
+                  <tr><td colspan="5" style="text-align:center;padding:36px;color:var(--text-muted)">No clients yet.</td></tr>
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+
+        <!-- DETAIL SUB-VIEW -->
+        <div id="clients-detail" style="display:none">
+          <div onclick="showClientsList()" class="client-detail-back">← Back to Clients</div>
+
+          <div class="client-detail-header">
+            <div>
+              <div class="client-detail-name" id="detail-client-name"></div>
+              <div class="client-meta-row" id="detail-client-meta"></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-shrink:0">
+              <button class="btn btn-sm" onclick="openEditClientFromDetail()">Edit Client</button>
+              <button class="btn btn-sm btn-straw" onclick="newEstimateForClient()">+ New Estimate</button>
+            </div>
+          </div>
+
+          <div class="client-detail-stats" id="detail-stats"></div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 id="detail-estimates-heading">Estimates</h3>
+            </div>
+            <div class="filter-bar">
+              <input type="text" placeholder="Filter by date, status..." oninput="renderClientEstimates(this.value)">
+            </div>
+            <div>
+              <table>
+                <thead><tr>
+                  <th>Date</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th style="text-align:right">Actions</th>
+                </tr></thead>
+                <tbody id="client-estimates-body">
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
       </div>
 
       <!-- PRICING -->
@@ -728,6 +781,7 @@ let settings = JSON.parse(localStorage.getItem('regen_settings') || '{}');
 let currentLineItems = [];
 let nextId = parseInt(localStorage.getItem('regen_nextid') || '1');
 let _clientEmailsEditing = [];
+let currentClientId = null;
 
 function save() {
   localStorage.setItem('regen_products', JSON.stringify(products));
@@ -749,7 +803,7 @@ function showView(v) {
   document.getElementById('topbar-title').textContent = titles[v] || v;
   if (v === 'pricing') renderPricingTable();
   if (v === 'estimates') renderEstimatesTable();
-  if (v === 'clients') renderClientsTable();
+  if (v === 'clients') showClientsList();
   if (v === 'dashboard') renderDashboard();
   if (v === 'settings') loadSettings();
   if (v === 'dev') renderDevPanel();
@@ -820,17 +874,20 @@ function renderClientsTable(filter = '') {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:36px;color:var(--text-muted)">${clients.length ? 'No matches.' : 'No clients yet.'}</td></tr>`;
     return;
   }
-  tbody.innerHTML = filtered.map(c => `
-    <tr>
-      <td><strong>${c.name}</strong></td>
+  tbody.innerHTML = filtered.map(c => {
+    const estCount = estimates.filter(e => e.client.toLowerCase() === c.name.toLowerCase()).length;
+    return `<tr>
+      <td><strong style="cursor:pointer;color:var(--moss)" onclick="showClientDetail(${c.id})">${c.name}</strong></td>
       <td>${c.emails.length ? c.emails.map(e => `<span class="badge badge-gray" style="margin:1px">${e}</span>`).join('') : '<span class="text-muted">—</span>'}</td>
       <td>${c.phone || '—'}</td>
-      <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(c.notes)}">${c.notes || '—'}</td>
+      <td>${estCount ? `<span class="badge badge-green">${estCount}</span>` : '<span class="text-muted">0</span>'}</td>
       <td style="text-align:right">
-        <button class="btn btn-sm" onclick="openEditClient(${c.id})">Edit</button>
+        <button class="btn btn-sm btn-straw" onclick="showClientDetail(${c.id})">View</button>
+        <button class="btn btn-sm" style="margin-left:4px" onclick="openEditClient(${c.id})">Edit</button>
         <button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="deleteClient(${c.id})">Remove</button>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 function openAddClientModal() {
@@ -904,6 +961,7 @@ function saveClient() {
   save();
   closeModal('modal-client');
   renderClientsTable();
+  if (currentClientId && parseInt(editId) === currentClientId) renderClientDetail();
   toast(editId ? 'Client updated.' : 'Client added.');
 }
 
@@ -927,6 +985,99 @@ function autoSaveClient(name, email) {
     save();
     toast(`${name} added to client list.`);
   }
+}
+
+// ==================== CLIENT DETAIL ====================
+function showClientDetail(id) {
+  currentClientId = id;
+  document.getElementById('clients-list').style.display = 'none';
+  document.getElementById('clients-detail').style.display = 'block';
+  renderClientDetail();
+}
+
+function showClientsList() {
+  currentClientId = null;
+  document.getElementById('clients-detail').style.display = 'none';
+  document.getElementById('clients-list').style.display = 'block';
+  renderClientsTable();
+}
+
+function renderClientDetail() {
+  const c = clients.find(x => x.id === currentClientId);
+  if (!c) { showClientsList(); return; }
+
+  document.getElementById('detail-client-name').textContent = c.name;
+
+  const meta = [];
+  if (c.emails.length) meta.push(`<span class="client-meta-item">✉ ${c.emails.join(', ')}</span>`);
+  if (c.phone) meta.push(`<span class="client-meta-item">☎ ${c.phone}</span>`);
+  if (c.notes) meta.push(`<span class="client-meta-item" style="font-style:italic">${esc(c.notes)}</span>`);
+  document.getElementById('detail-client-meta').innerHTML = meta.join('') || '<span style="color:var(--text-muted)">No contact info</span>';
+
+  const clientEstimates = estimates.filter(e => e.client.toLowerCase() === c.name.toLowerCase());
+  const totalValue = clientEstimates.reduce((s, e) => s + (e.total || 0), 0);
+  const sentCount = clientEstimates.filter(e => e.status === 'sent').length;
+  const draftCount = clientEstimates.filter(e => e.status === 'draft').length;
+
+  document.getElementById('detail-stats').innerHTML = [
+    { label: 'Total Estimates', val: clientEstimates.length },
+    { label: 'Total Value',     val: '$' + fmtMoney(totalValue) },
+    { label: 'Sent',            val: sentCount },
+    { label: 'Drafts',          val: draftCount },
+  ].map(s => `<div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-val">${s.val}</div></div>`).join('');
+
+  document.getElementById('detail-estimates-heading').textContent =
+    `${c.name}'s Estimates (${clientEstimates.length})`;
+
+  renderClientEstimates();
+}
+
+function renderClientEstimates(filter = '') {
+  const c = clients.find(x => x.id === currentClientId);
+  if (!c) return;
+  const q = (filter || '').toLowerCase();
+  const clientEstimates = estimates
+    .filter(e => e.client.toLowerCase() === c.name.toLowerCase())
+    .filter(e => !q || (e.date || '').includes(q) || (e.status || '').includes(q) || fmtMoney(e.total).includes(q))
+    .sort((a, b) => b.id - a.id);
+
+  const tbody = document.getElementById('client-estimates-body');
+  if (!clientEstimates.length) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:36px;color:var(--text-muted)">${filter ? 'No matches.' : 'No estimates yet.'}</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = clientEstimates.map(e => `<tr>
+    <td>${e.date || '—'}</td>
+    <td>$${fmtMoney(e.total)}</td>
+    <td>${statusBadge(e.status)}</td>
+    <td style="text-align:right">
+      <button class="btn btn-sm" onclick="editEstimate(${e.id})">Edit</button>
+      <button class="btn btn-sm btn-primary" style="margin-left:4px" onclick="loadAndPreview(${e.id})">Preview</button>
+      <button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="deleteEstimateFromDetail(${e.id})">Delete</button>
+    </td>
+  </tr>`).join('');
+}
+
+function deleteEstimateFromDetail(id) {
+  if (!confirm('Delete this estimate?')) return;
+  estimates = estimates.filter(x => x.id !== id);
+  save();
+  renderClientDetail();
+  toast('Estimate deleted.');
+}
+
+function openEditClientFromDetail() {
+  openEditClient(currentClientId);
+}
+
+function newEstimateForClient() {
+  const c = clients.find(x => x.id === currentClientId);
+  if (!c) return;
+  openNewEstimate();
+  document.getElementById('est-client').value = c.name;
+  document.getElementById('client-email-list').innerHTML = c.emails.map(e => `<option value="${e}">`).join('');
+  if (c.emails.length === 1) document.getElementById('est-client-email').value = c.emails[0];
+  document.getElementById('add-client-hint').style.display = 'none';
 }
 
 // ==================== CLIENT TYPEAHEAD ====================
@@ -1172,6 +1323,7 @@ function saveEstimateDraft() {
   closeModal('modal-estimate');
   toast('Draft saved.');
   renderDashboard();
+  if (currentClientId) renderClientDetail();
 }
 
 function collectEstimate(status) {
@@ -1432,7 +1584,6 @@ function previewEstimate() {
       ${overviewsHtml}
     </div>`;
 
-  document.getElementById('send-email').value = clientEmail || settings.email || '';
   closeModal('modal-estimate');
   openModal('modal-preview');
 }
@@ -1453,6 +1604,7 @@ function downloadEstimatePDF() {
     renderEstimatesTable();
     updateStats();
     renderDashboard();
+    if (currentClientId) renderClientDetail();
     closeModal('modal-preview');
     toast('PDF downloaded. Attach it to your email and send.');
   });
