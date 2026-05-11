@@ -227,6 +227,26 @@
   .offline-badge.visible { display: flex; }
   .offline-dot { width: 7px; height: 7px; border-radius: 50%; background: #d97706; flex-shrink: 0; }
 
+  /* SYNC / SANDBOX BADGES */
+  .sandbox-badge { display: none; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: #5b21b6; background: #ede9fe; border: 1px solid #c4b5fd; border-radius: 20px; padding: 4px 10px; }
+  .sandbox-badge.visible { display: flex; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--moss); flex-shrink: 0; animation: syncpulse 1.5s ease-in-out infinite; }
+  @keyframes syncpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  /* AUTH TOPBAR */
+  .auth-topbar { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .auth-topbar .auth-email { color: var(--text-muted); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* DEV SYNC CARD */
+  .dev-sync-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--parchment); font-size: 12px; }
+  .dev-sync-row:last-child { border-bottom: none; }
+  .dev-toggle { position: relative; display: inline-flex; align-items: center; cursor: pointer; gap: 8px; }
+  .dev-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+  .dev-toggle-track { width: 34px; height: 18px; background: var(--border); border-radius: 9px; transition: background 0.2s; flex-shrink: 0; }
+  .dev-toggle-track::after { content: ''; position: absolute; width: 14px; height: 14px; border-radius: 50%; background: white; top: 2px; left: 2px; transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+  .dev-toggle input:checked ~ .dev-toggle-track { background: var(--moss); }
+  .dev-toggle input:checked ~ .dev-toggle-track::after { transform: translateX(16px); }
+
   /* PRINT */
   @media print {
     body * { visibility: hidden; }
@@ -283,6 +303,8 @@
           <div class="offline-dot"></div>
           Offline — changes saved locally
         </div>
+        <div class="sandbox-badge" id="sandbox-badge">Sandbox Mode</div>
+        <div class="auth-topbar" id="auth-topbar"></div>
         <div class="topbar-actions" id="topbar-actions"></div>
       </div>
     </div>
@@ -560,6 +582,25 @@
         </div>
 
         <div class="dev-section">
+          <h4>Cloud Sync</h4>
+          <div class="card" style="margin-top:0;margin-bottom:12px">
+            <div class="card-body" style="padding:12px 16px" id="dev-sync-status">
+              <div style="font-size:12px;color:var(--text-muted)">Loading sync status...</div>
+            </div>
+          </div>
+          <div class="dev-action-grid">
+            <button class="dev-btn" onclick="devPullFromCloud()" id="dev-pull-btn">
+              <span class="dev-btn-title">Pull from Cloud</span>
+              <span class="dev-btn-sub">Replace local with Supabase data</span>
+            </button>
+            <button class="dev-btn" onclick="devPushToCloud()" id="dev-push-btn">
+              <span class="dev-btn-title">Push to Cloud</span>
+              <span class="dev-btn-sub">Force sync local → Supabase now</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="dev-section">
           <h4>localStorage Inspector</h4>
           <div class="card" style="margin-top:0">
             <div class="card-body" style="font-family:monospace;font-size:12px" id="dev-storage-inspector"></div>
@@ -780,6 +821,39 @@
   </div>
 </div>
 
+<!-- AUTH MODAL -->
+<div class="modal-backdrop" id="modal-auth">
+  <div class="modal" style="width:400px">
+    <div class="modal-header">
+      <h3>Sign In to Sync</h3>
+      <button class="modal-close" onclick="closeModal('modal-auth')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="auth-step-1">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Enter your email and we'll send a 6-digit sign-in code. No password needed.</p>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="auth-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')requestOTP()">
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="requestOTP()">Send Code</button>
+      </div>
+      <div id="auth-step-2" style="display:none">
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:4px">Code sent to:</p>
+        <p style="font-size:13px;font-weight:500;margin-bottom:16px" id="auth-email-display"></p>
+        <div class="form-group">
+          <label>6-Digit Code</label>
+          <input type="text" id="auth-otp" placeholder="000000" maxlength="6" inputmode="numeric"
+            style="letter-spacing:0.25em;font-size:22px;text-align:center;font-family:'DM Sans',sans-serif"
+            oninput="if(this.value.replace(/\D/g,'').length===6)verifyOTP()"
+            onkeydown="if(event.key==='Enter')verifyOTP()">
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="verifyOTP()">Verify & Sign In</button>
+        <button class="btn" style="width:100%;margin-top:8px" onclick="resetAuthForm()">Use a Different Email</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toast-container"></div>
 
@@ -794,6 +868,19 @@ let nextId = parseInt(localStorage.getItem('regen_nextid') || '1');
 let _clientEmailsEditing = [];
 let currentClientId = null;
 
+// Sync state
+let currentSession  = null;
+let isSyncing       = false;
+let lastSyncedAt    = null;
+let _syncTimer      = null;
+const _pendingDeletes = { clients: [], products: [], estimates: [] };
+// Sandbox = localStorage-only mode, never writes to Supabase
+// Auto-enables on -dev URL; user can override in Dev Tools
+const _defaultSandbox = location.hostname.includes('-dev') || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+let sandboxMode = localStorage.getItem('regen_sandbox') !== null
+  ? localStorage.getItem('regen_sandbox') === 'true'
+  : _defaultSandbox;
+
 function save() {
   localStorage.setItem('regen_products', JSON.stringify(products));
   localStorage.setItem('regen_estimates', JSON.stringify(estimates));
@@ -801,6 +888,7 @@ function save() {
   localStorage.setItem('regen_settings', JSON.stringify(settings));
   localStorage.setItem('regen_nextid', String(nextId));
   updateStats();
+  debouncedSync();
 }
 function genId() { return nextId++; }
 
@@ -979,6 +1067,7 @@ function saveClient() {
 function deleteClient(id) {
   if (!confirm('Remove this client?')) return;
   clients = clients.filter(x => x.id !== id);
+  _pendingDeletes.clients.push(id);
   save(); renderClientsTable(); toast('Client removed.');
 }
 
@@ -1072,6 +1161,7 @@ function renderClientEstimates(filter = '') {
 function deleteEstimateFromDetail(id) {
   if (!confirm('Delete this estimate?')) return;
   estimates = estimates.filter(x => x.id !== id);
+  _pendingDeletes.estimates.push(id);
   save();
   renderClientDetail();
   toast('Estimate deleted.');
@@ -1230,6 +1320,7 @@ function unarchiveProduct(id) {
 function deleteProduct(id) {
   if (!confirm('Remove this product permanently?')) return;
   products = products.filter(x => x.id !== id);
+  _pendingDeletes.products.push(id);
   save(); renderPricingTable(); toast('Product removed.');
 }
 
@@ -1371,6 +1462,7 @@ function collectEstimate(status) {
 function deleteEstimate(id) {
   if (!confirm('Delete this estimate?')) return;
   estimates = estimates.filter(x => x.id !== id);
+  _pendingDeletes.estimates.push(id);
   save(); renderEstimatesTable(); toast('Estimate deleted.');
 }
 
@@ -1835,6 +1927,31 @@ function devImport(e) {
 }
 
 function renderDevPanel() {
+  // Cloud sync status
+  const syncEl = document.getElementById('dev-sync-status');
+  if (syncEl) {
+    const user = currentSession?.user;
+    const lastSync = lastSyncedAt ? `${Math.round((Date.now() - lastSyncedAt) / 1000)}s ago` : 'Never';
+    syncEl.innerHTML = `
+      <div class="dev-sync-row">
+        <span style="color:var(--text-muted)">Status</span>
+        <span style="font-weight:500">${user ? '✓ Signed in as ' + user.email : '— Not signed in'}</span>
+      </div>
+      <div class="dev-sync-row">
+        <span style="color:var(--text-muted)">Sandbox Mode</span>
+        <label class="dev-toggle" onclick="setSandboxMode(!sandboxMode)">
+          <input type="checkbox" ${sandboxMode ? 'checked' : ''} onclick="event.stopPropagation()">
+          <span class="dev-toggle-track"></span>
+          <span style="color:${sandboxMode ? '#5b21b6' : 'var(--text-muted)'};">${sandboxMode ? 'On — local only' : 'Off — syncing'}</span>
+        </label>
+      </div>
+      <div class="dev-sync-row">
+        <span style="color:var(--text-muted)">Last synced</span>
+        <span>${user && !sandboxMode ? lastSync : '—'}</span>
+      </div>
+      ${!user ? `<div style="margin-top:10px"><button class="btn btn-sm btn-primary" onclick="openModal('modal-auth')">Sign In</button></div>` : ''}`;
+  }
+
   const keys = ['regen_clients','regen_products','regen_estimates','regen_settings','regen_nextid'];
   let totalBytes = 0;
   const rows = keys.map(k => {
@@ -1861,6 +1978,233 @@ function renderDevPanel() {
   ].map(s => `<div class="dev-card"><div class="dev-val">${s.val}</div><div class="dev-label">${s.label}</div></div>`).join('');
 }
 
+// ==================== AUTH & SYNC ====================
+function isSyncActive() {
+  return !sandboxMode && db !== null && currentSession !== null && navigator.onLine;
+}
+
+function updateAuthUI() {
+  const user = currentSession?.user;
+  const topbar = document.getElementById('auth-topbar');
+  const sandboxEl = document.getElementById('sandbox-badge');
+
+  if (user) {
+    topbar.innerHTML = `
+      <span class="auth-email">${user.email}</span>
+      ${!sandboxMode ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--moss)"><span class="sync-dot"></span>Syncing</span>` : ''}
+      <button class="btn btn-sm" onclick="signOut()" style="font-size:11px;padding:4px 8px">Sign Out</button>`;
+  } else {
+    topbar.innerHTML = `<button class="btn btn-sm" onclick="openModal('modal-auth')">Sign In to Sync</button>`;
+  }
+  sandboxEl.classList.toggle('visible', sandboxMode);
+  if (document.getElementById('view-dev').classList.contains('active')) renderDevPanel();
+}
+
+async function initAuth() {
+  if (!db) { updateAuthUI(); return; }
+  try {
+    const { data: { session } } = await db.auth.getSession();
+    if (session) { currentSession = session; updateAuthUI(); loadFromSupabase(); }
+    else { updateAuthUI(); }
+    db.auth.onAuthStateChange((_event, session) => {
+      currentSession = session;
+      updateAuthUI();
+      if (session) loadFromSupabase();
+    });
+  } catch (e) {
+    console.warn('Auth init failed:', e);
+    updateAuthUI();
+  }
+}
+
+async function requestOTP() {
+  if (!db) { toast('Supabase not available.'); return; }
+  const email = document.getElementById('auth-email').value.trim();
+  if (!email) { toast('Enter your email.'); return; }
+  const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  if (error) { toast('Error: ' + error.message); return; }
+  document.getElementById('auth-step-1').style.display = 'none';
+  document.getElementById('auth-step-2').style.display = 'block';
+  document.getElementById('auth-email-display').textContent = email;
+  toast('Code sent — check your email.');
+}
+
+async function verifyOTP() {
+  if (!db) return;
+  const email = document.getElementById('auth-email').value.trim();
+  const raw = document.getElementById('auth-otp').value.replace(/\D/g, '');
+  if (raw.length < 6) { toast('Enter the 6-digit code.'); return; }
+  const { error } = await db.auth.verifyOtp({ email, token: raw, type: 'email' });
+  if (error) { toast('Invalid code — try again.'); return; }
+  closeModal('modal-auth');
+  toast('Signed in. Syncing your data...');
+}
+
+function resetAuthForm() {
+  document.getElementById('auth-step-1').style.display = 'block';
+  document.getElementById('auth-step-2').style.display = 'none';
+  document.getElementById('auth-otp').value = '';
+}
+
+async function signOut() {
+  if (!db) return;
+  await db.auth.signOut();
+  currentSession = null;
+  updateAuthUI();
+  toast('Signed out.');
+}
+
+function debouncedSync() {
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(() => upsertToSupabase(), 2000);
+}
+
+async function upsertToSupabase() {
+  if (!isSyncActive() || isSyncing) return;
+  isSyncing = true;
+  const uid = currentSession.user.id;
+  try {
+    // Process pending deletes first
+    for (const [table, ids] of Object.entries(_pendingDeletes)) {
+      if (ids.length) {
+        await db.from(table).delete().eq('user_id', uid).in('local_id', ids);
+        _pendingDeletes[table] = [];
+      }
+    }
+    // Upsert all current records
+    await Promise.all([
+      db.from('clients').upsert(
+        clients.map(c => ({ user_id: uid, local_id: c.id, name: c.name, emails: c.emails, phone: c.phone || null, notes: c.notes || null })),
+        { onConflict: 'user_id,local_id' }
+      ),
+      db.from('products').upsert(
+        products.map(p => ({ user_id: uid, local_id: p.id, name: p.name, unit: p.unit, price: p.price, category: p.category || null, desc: p.desc || null, status: p.status })),
+        { onConflict: 'user_id,local_id' }
+      ),
+      db.from('estimates').upsert(
+        estimates.map(e => ({ user_id: uid, local_id: e.id, client: e.client, client_email: e.clientEmail || null, date: e.date || null, valid_until: e.validUntil || null, status: e.status, subtotal: e.subtotal, tax: e.taxRate, total: e.total, notes: e.notes || null, line_items: e.lineItems, include_product_details: e.includeProductDetails || false })),
+        { onConflict: 'user_id,local_id' }
+      ),
+      db.from('user_settings').upsert(
+        [{ user_id: uid, bizname: settings.bizname || null, name: settings.name || null, phone: settings.phone || null, email: settings.email || null, logo: settings.logo || null, tax: settings.tax || 0, notes: settings.notes || null }],
+        { onConflict: 'user_id' }
+      ),
+    ]);
+    lastSyncedAt = new Date();
+    if (document.getElementById('view-dev').classList.contains('active')) renderDevPanel();
+  } catch (e) {
+    console.warn('Supabase sync failed:', e);
+  } finally {
+    isSyncing = false;
+  }
+}
+
+// Merge strategy: add/update remote records, keep local-only records
+async function loadFromSupabase() {
+  if (!db || !currentSession) return;
+  const uid = currentSession.user.id;
+  try {
+    const [cr, pr, er, sr] = await Promise.all([
+      db.from('clients').select('*').eq('user_id', uid),
+      db.from('products').select('*').eq('user_id', uid),
+      db.from('estimates').select('*').eq('user_id', uid),
+      db.from('user_settings').select('*').eq('user_id', uid).maybeSingle(),
+    ]);
+    if (cr.data?.length) {
+      cr.data.forEach(r => {
+        const local = { id: r.local_id, name: r.name, emails: r.emails || [], phone: r.phone || '', notes: r.notes || '' };
+        const idx = clients.findIndex(x => x.id === r.local_id);
+        if (idx > -1) clients[idx] = { ...clients[idx], ...local };
+        else clients.push(local);
+      });
+    }
+    if (pr.data?.length) {
+      pr.data.forEach(r => {
+        const local = { id: r.local_id, name: r.name, unit: r.unit, price: r.price, category: r.category || '', desc: r.desc || '', status: r.status };
+        const idx = products.findIndex(x => x.id === r.local_id);
+        if (idx > -1) products[idx] = { ...products[idx], ...local };
+        else products.push(local);
+      });
+    }
+    if (er.data?.length) {
+      er.data.forEach(r => {
+        const local = { id: r.local_id, client: r.client, clientEmail: r.client_email || '', date: r.date || '', validUntil: r.valid_until || '', status: r.status, subtotal: r.subtotal, taxRate: r.tax, total: r.total, notes: r.notes || '', lineItems: r.line_items || [], includeProductDetails: r.include_product_details || false };
+        const idx = estimates.findIndex(x => x.id === r.local_id);
+        if (idx > -1) estimates[idx] = { ...estimates[idx], ...local };
+        else estimates.push(local);
+      });
+    }
+    if (sr.data) {
+      settings = { ...settings, bizname: sr.data.bizname || settings.bizname || '', name: sr.data.name || settings.name || '', phone: sr.data.phone || settings.phone || '', email: sr.data.email || settings.email || '', tax: sr.data.tax ?? settings.tax ?? 0, notes: sr.data.notes || settings.notes || '' };
+    }
+    const maxId = Math.max(0, ...clients.map(x=>x.id||0), ...products.map(x=>x.id||0), ...estimates.map(x=>x.id||0));
+    if (maxId >= nextId) nextId = maxId + 1;
+    save();
+    lastSyncedAt = new Date();
+    toast('Cloud data loaded.');
+  } catch (e) {
+    console.warn('loadFromSupabase failed:', e);
+    toast('Could not load from cloud — working offline.');
+  }
+}
+
+// Replace strategy: wipe local, load Supabase as-is. Used by "Pull from Cloud" in Dev Tools.
+async function pullFromSupabase() {
+  if (!db || !currentSession) { toast('Sign in first.'); return; }
+  const uid = currentSession.user.id;
+  try {
+    const [cr, pr, er, sr] = await Promise.all([
+      db.from('clients').select('*').eq('user_id', uid),
+      db.from('products').select('*').eq('user_id', uid),
+      db.from('estimates').select('*').eq('user_id', uid),
+      db.from('user_settings').select('*').eq('user_id', uid).maybeSingle(),
+    ]);
+    clients   = (cr.data || []).map(r => ({ id: r.local_id, name: r.name, emails: r.emails || [], phone: r.phone || '', notes: r.notes || '' }));
+    products  = (pr.data || []).map(r => ({ id: r.local_id, name: r.name, unit: r.unit, price: r.price, category: r.category || '', desc: r.desc || '', status: r.status }));
+    estimates = (er.data || []).map(r => ({ id: r.local_id, client: r.client, clientEmail: r.client_email || '', date: r.date || '', validUntil: r.valid_until || '', status: r.status, subtotal: r.subtotal, taxRate: r.tax, total: r.total, notes: r.notes || '', lineItems: r.line_items || [], includeProductDetails: r.include_product_details || false }));
+    if (sr.data) settings = { ...settings, bizname: sr.data.bizname || '', name: sr.data.name || '', phone: sr.data.phone || '', email: sr.data.email || '', tax: sr.data.tax ?? 0, notes: sr.data.notes || '' };
+    const maxId = Math.max(0, ...clients.map(x=>x.id||0), ...products.map(x=>x.id||0), ...estimates.map(x=>x.id||0));
+    nextId = maxId + 1;
+    // Auto-enable sandbox so the pulled data can't be accidentally pushed back
+    sandboxMode = true;
+    localStorage.setItem('regen_sandbox', 'true');
+    save();
+    lastSyncedAt = new Date();
+    toast('Cloud data loaded. Sandbox mode enabled to protect it.');
+    updateAuthUI();
+    renderDevPanel();
+  } catch (e) {
+    console.warn('pullFromSupabase failed:', e);
+    toast('Pull failed — check connection.');
+  }
+}
+
+function setSandboxMode(on) {
+  sandboxMode = on;
+  localStorage.setItem('regen_sandbox', String(on));
+  updateAuthUI();
+  renderDevPanel();
+  toast(on ? 'Sandbox mode on — writes stay local.' : 'Sandbox mode off — changes will sync to cloud.');
+}
+
+// Dev Tools actions
+async function devPullFromCloud() {
+  if (!currentSession) { toast('Sign in first via Dev Tools.'); openModal('modal-auth'); return; }
+  if (!confirm('Replace all local data with the latest from Supabase? Sandbox mode will be enabled automatically.')) return;
+  await pullFromSupabase();
+}
+async function devPushToCloud() {
+  if (!currentSession) { toast('Sign in first.'); openModal('modal-auth'); return; }
+  if (sandboxMode) { toast('Sandbox mode is on — turn it off first to push.'); return; }
+  toast('Pushing to cloud...');
+  clearTimeout(_syncTimer);
+  await upsertToSupabase();
+  toast('Pushed to cloud.');
+}
+
+// Re-sync when coming back online
+window.addEventListener('online', () => { if (isSyncActive()) upsertToSupabase(); });
+
 // ==================== SUPABASE ====================
 const SUPABASE_URL      = 'https://rhwhfhbkzgeedwhswtel.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_2O-OQUCAb1lNAx1zLKpRig_A6sB1eLI';
@@ -1874,6 +2218,7 @@ try {
 
 // ==================== INIT ====================
 updateStats();
+initAuth();
 
 // ==================== OFFLINE INDICATOR ====================
 function updateOnlineStatus() {

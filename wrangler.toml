@@ -4,3 +4,12 @@ compatibility_date = "2026-04-12"
 [assets]
 directory = "."
 not_found_handling = "single-page-application"
+
+# Dev / sandbox deployment — deploy with: wrangler deploy --env dev
+# Auto-enables sandbox mode in the app (no Supabase writes)
+[env.dev]
+name = "regen-estimator-dev"
+
+[env.dev.assets]
+directory = "."
+not_found_handling = "single-page-application"
