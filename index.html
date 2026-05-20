@@ -176,7 +176,7 @@
   .preview-overview-item p { font-size: 12px; color: var(--text-muted); line-height: 1.55; white-space: pre-wrap; }
 
 /* TOASTS */
-  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 10000; display: flex; flex-direction: column; gap: 8px; }
   .toast { background: var(--soil); color: white; padding: 11px 18px; border-radius: var(--radius); font-size: 13px; box-shadow: 0 4px 16px rgba(42,31,20,0.25); animation: slideUp 0.2s ease; max-width: 320px; }
   @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
@@ -2221,7 +2221,7 @@ async function gateRequestOTP() {
   if (!db) { toast('Cannot connect — check your internet connection.'); return; }
   const btn = document.querySelector('#gate-step-1 .btn-primary');
   btn.disabled = true; btn.textContent = 'Sending…';
-  const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+  const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
   btn.disabled = false; btn.textContent = 'Send Code';
   if (error) { toast('Error: ' + error.message); return; }
   document.getElementById('gate-email-display').textContent = email;
