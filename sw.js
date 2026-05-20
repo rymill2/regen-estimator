@@ -1,4 +1,4 @@
-const CACHE = 'regen-estimator-v2';
+const CACHE = 'regen-estimator-v3';
 
 // Precached at install — all served locally, available immediately offline
 const PRECACHE = [

@@ -243,6 +243,7 @@
   .auth-gate-brand .brand { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--soil); line-height: 1.1; }
   .auth-gate-brand .tagline { font-size: 11px; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 6px; }
   .gate-hint { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+  .gate-input-error { border-color: var(--danger) !important; box-shadow: 0 0 0 3px rgba(139,58,42,0.12) !important; }
 
   /* DEV PANEL */
   .nav-item-dev { border-top: 1px solid rgba(255,255,255,0.06); margin-top: auto; }
@@ -313,7 +314,10 @@
       <p class="gate-hint">Enter your email and we'll send a 6-digit sign-in code.</p>
       <div class="form-group">
         <label>Email Address</label>
-        <input type="email" id="gate-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')gateRequestOTP()">
+        <input type="email" id="gate-email" placeholder="your@email.com"
+          oninput="clearGateError()"
+          onkeydown="if(event.key==='Enter')gateRequestOTP()">
+        <div id="gate-email-error" style="display:none;color:var(--danger);font-size:12px;margin-top:5px;line-height:1.4"></div>
       </div>
       <button class="btn btn-primary" style="width:100%" onclick="gateRequestOTP()">Send Code</button>
     </div>
@@ -321,7 +325,10 @@
       <p class="gate-hint">Code sent to <strong id="gate-email-display"></strong></p>
       <div class="form-group">
         <label>6-Digit Code</label>
-        <input type="text" id="gate-otp" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" onkeydown="if(event.key==='Enter')gateVerifyOTP()">
+        <input type="text" id="gate-otp" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456"
+          oninput="clearGateOtpError()"
+          onkeydown="if(event.key==='Enter')gateVerifyOTP()">
+        <div id="gate-otp-error" style="display:none;color:var(--danger);font-size:12px;margin-top:5px;line-height:1.4"></div>
       </div>
       <button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="gateVerifyOTP()">Sign In</button>
       <button class="btn" style="width:100%" onclick="gateResetForm()">← Try a different email</button>
@@ -2214,16 +2221,55 @@ function resetAuthForm() {
 }
 
 // ==================== AUTH GATE ====================
+function showGateError(msg) {
+  const el  = document.getElementById('gate-email-error');
+  const inp = document.getElementById('gate-email');
+  el.textContent = msg;
+  el.style.display = msg ? '' : 'none';
+  inp.classList.toggle('gate-input-error', !!msg);
+}
+function clearGateError() { showGateError(''); }
+
+function showGateOtpError(msg) {
+  const el  = document.getElementById('gate-otp-error');
+  const inp = document.getElementById('gate-otp');
+  el.textContent = msg;
+  el.style.display = msg ? '' : 'none';
+  inp.classList.toggle('gate-input-error', !!msg);
+}
+function clearGateOtpError() { showGateOtpError(''); }
+
 async function gateRequestOTP() {
+  clearGateError();
   const email = document.getElementById('gate-email').value.trim().toLowerCase();
-  if (!email) { toast('Enter your email.'); return; }
-  if (!ALLOWED_EMAILS.includes(email)) { toast('Access is restricted to authorized users.'); return; }
-  if (!db) { toast('Cannot connect — check your internet connection.'); return; }
+  if (!email) {
+    showGateError('Please enter your email address.');
+    document.getElementById('gate-email').focus();
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showGateError('Please enter a valid email address.');
+    return;
+  }
+  if (!ALLOWED_EMAILS.includes(email)) {
+    showGateError('This email is not authorized to access this app.');
+    return;
+  }
+  if (!db) {
+    showGateError('Cannot connect to the server. Check your internet connection and try again.');
+    return;
+  }
   const btn = document.querySelector('#gate-step-1 .btn-primary');
   btn.disabled = true; btn.textContent = 'Sending…';
   const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
   btn.disabled = false; btn.textContent = 'Send Code';
-  if (error) { toast('Error: ' + error.message); return; }
+  if (error) {
+    const msg = error.message.includes('rate') || error.message.includes('limit')
+      ? 'Too many attempts — please wait a minute and try again.'
+      : 'Could not send code: ' + error.message;
+    showGateError(msg);
+    return;
+  }
   document.getElementById('gate-email-display').textContent = email;
   document.getElementById('gate-step-1').style.display = 'none';
   document.getElementById('gate-step-2').style.display = '';
@@ -2231,14 +2277,21 @@ async function gateRequestOTP() {
 }
 
 async function gateVerifyOTP() {
+  clearGateOtpError();
   const email = document.getElementById('gate-email').value.trim().toLowerCase();
   const raw = document.getElementById('gate-otp').value.replace(/\D/g, '');
-  if (raw.length < 6) { toast('Enter the 6-digit code.'); return; }
+  if (raw.length < 6) {
+    showGateOtpError('Please enter the full 6-digit code.');
+    return;
+  }
   const btn = document.querySelector('#gate-step-2 .btn-primary');
   btn.disabled = true; btn.textContent = 'Signing in…';
   const { error } = await db.auth.verifyOtp({ email, token: raw, type: 'email' });
   btn.disabled = false; btn.textContent = 'Sign In';
-  if (error) { toast('Invalid or expired code — try again.'); return; }
+  if (error) {
+    showGateOtpError('Invalid or expired code — check your email and try again.');
+    return;
+  }
   toast('Welcome! Syncing your data…');
 }
 
@@ -2248,7 +2301,8 @@ function gateResetForm() {
   if (s1) s1.style.display = '';
   if (s2) s2.style.display = 'none';
   const otp = document.getElementById('gate-otp');
-  if (otp) otp.value = '';
+  if (otp) { otp.value = ''; clearGateOtpError(); }
+  clearGateError();
 }
 
 async function signOut() {
