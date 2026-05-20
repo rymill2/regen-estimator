@@ -194,6 +194,14 @@
   .meta-icon { width: 12px; height: 12px; fill: currentColor; flex-shrink: 0; }
   .client-detail-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
 
+  /* AUTH GATE */
+  #auth-gate { position: fixed; inset: 0; z-index: 9999; background: var(--mist); display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .auth-gate-card { background: white; border-radius: var(--radius); box-shadow: 0 8px 40px rgba(0,0,0,0.14); padding: 36px 32px; width: 100%; max-width: 360px; }
+  .auth-gate-brand { text-align: center; margin-bottom: 28px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+  .auth-gate-brand .brand { font-family: 'Playfair Display', serif; font-size: 28px; color: var(--soil); line-height: 1.1; }
+  .auth-gate-brand .tagline { font-size: 11px; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 6px; }
+  .gate-hint { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+
   /* DEV PANEL */
   .nav-item-dev { border-top: 1px solid rgba(255,255,255,0.06); margin-top: auto; }
   .nav-item-dev.active { color: #f59e0b; border-left-color: #f59e0b; background: rgba(245,158,11,0.08); }
@@ -265,7 +273,34 @@
 
 <div id="print-area" style="display:none"></div>
 
-<div class="app-shell">
+<!-- AUTH GATE — shown until signed in -->
+<div id="auth-gate">
+  <div class="auth-gate-card">
+    <div class="auth-gate-brand">
+      <div class="brand">Regen<br>Estimator</div>
+      <div class="tagline">Fertilizer Programs</div>
+    </div>
+    <div id="gate-step-1">
+      <p class="gate-hint">Enter your email and we'll send a 6-digit sign-in code.</p>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="gate-email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')gateRequestOTP()">
+      </div>
+      <button class="btn btn-primary" style="width:100%" onclick="gateRequestOTP()">Send Code</button>
+    </div>
+    <div id="gate-step-2" style="display:none">
+      <p class="gate-hint">Code sent to <strong id="gate-email-display"></strong></p>
+      <div class="form-group">
+        <label>6-Digit Code</label>
+        <input type="text" id="gate-otp" inputmode="numeric" pattern="[0-9]*" maxlength="6" placeholder="123456" onkeydown="if(event.key==='Enter')gateVerifyOTP()">
+      </div>
+      <button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="gateVerifyOTP()">Sign In</button>
+      <button class="btn" style="width:100%" onclick="gateResetForm()">← Try a different email</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-shell" style="display:none">
   <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-logo">
@@ -2015,16 +2050,23 @@ function isSyncActive() {
 
 function updateAuthUI() {
   const user = currentSession?.user;
+  const gate  = document.getElementById('auth-gate');
+  const shell = document.querySelector('.app-shell');
   const topbar = document.getElementById('auth-topbar');
   const sandboxEl = document.getElementById('sandbox-badge');
 
   if (user) {
+    gate.style.display  = 'none';
+    shell.style.display = 'flex';
     topbar.innerHTML = `
       <span class="auth-email">${user.email}</span>
       ${!sandboxMode ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--moss)"><span class="sync-dot"></span>Syncing</span>` : ''}
       <button class="btn btn-sm" onclick="signOut()" style="font-size:11px;padding:4px 8px">Sign Out</button>`;
   } else {
-    topbar.innerHTML = `<button class="btn btn-sm" onclick="openModal('modal-auth')">Sign In to Sync</button>`;
+    gate.style.display  = 'flex';
+    shell.style.display = 'none';
+    topbar.innerHTML = '';
+    gateResetForm();
   }
   sandboxEl.classList.toggle('visible', sandboxMode);
   if (document.getElementById('view-dev').classList.contains('active')) renderDevPanel();
@@ -2077,6 +2119,44 @@ function resetAuthForm() {
   document.getElementById('auth-step-1').style.display = 'block';
   document.getElementById('auth-step-2').style.display = 'none';
   document.getElementById('auth-otp').value = '';
+}
+
+// ==================== AUTH GATE ====================
+async function gateRequestOTP() {
+  const email = document.getElementById('gate-email').value.trim().toLowerCase();
+  if (!email) { toast('Enter your email.'); return; }
+  if (!ALLOWED_EMAILS.includes(email)) { toast('Access is restricted to authorized users.'); return; }
+  if (!db) { toast('Cannot connect — check your internet connection.'); return; }
+  const btn = document.querySelector('#gate-step-1 .btn-primary');
+  btn.disabled = true; btn.textContent = 'Sending…';
+  const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
+  btn.disabled = false; btn.textContent = 'Send Code';
+  if (error) { toast('Error: ' + error.message); return; }
+  document.getElementById('gate-email-display').textContent = email;
+  document.getElementById('gate-step-1').style.display = 'none';
+  document.getElementById('gate-step-2').style.display = '';
+  setTimeout(() => document.getElementById('gate-otp').focus(), 50);
+}
+
+async function gateVerifyOTP() {
+  const email = document.getElementById('gate-email').value.trim().toLowerCase();
+  const raw = document.getElementById('gate-otp').value.replace(/\D/g, '');
+  if (raw.length < 6) { toast('Enter the 6-digit code.'); return; }
+  const btn = document.querySelector('#gate-step-2 .btn-primary');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+  const { error } = await db.auth.verifyOtp({ email, token: raw, type: 'email' });
+  btn.disabled = false; btn.textContent = 'Sign In';
+  if (error) { toast('Invalid or expired code — try again.'); return; }
+  toast('Welcome! Syncing your data…');
+}
+
+function gateResetForm() {
+  const s1 = document.getElementById('gate-step-1');
+  const s2 = document.getElementById('gate-step-2');
+  if (s1) s1.style.display = '';
+  if (s2) s2.style.display = 'none';
+  const otp = document.getElementById('gate-otp');
+  if (otp) otp.value = '';
 }
 
 async function signOut() {
