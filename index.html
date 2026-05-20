@@ -2264,9 +2264,14 @@ async function gateRequestOTP() {
   const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
   btn.disabled = false; btn.textContent = 'Send Code';
   if (error) {
-    const msg = error.message.includes('rate') || error.message.includes('limit')
-      ? 'Too many attempts — please wait a minute and try again.'
-      : 'Could not send code: ' + error.message;
+    let msg;
+    if (error.message === 'Failed to fetch' || error.message.includes('NetworkError') || error.message.includes('fetch')) {
+      msg = 'Cannot reach the sign-in server. The service may be temporarily unavailable — try again in a moment.';
+    } else if (error.message.includes('rate') || error.message.includes('limit')) {
+      msg = 'Too many attempts — please wait a minute and try again.';
+    } else {
+      msg = 'Could not send code: ' + error.message;
+    }
     showGateError(msg);
     return;
   }
