@@ -153,6 +153,8 @@
   .stat-card .stat-label { font-size: 11px; color: var(--text-muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 6px; }
   .stat-card .stat-val { font-size: 22px; font-family: 'Playfair Display', serif; color: var(--soil); }
   .stat-card .stat-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .stat-card.clickable { cursor: pointer; transition: box-shadow 0.15s, transform 0.1s; }
+  .stat-card.clickable:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.13); transform: translateY(-2px); }
 
   .archived-row td { opacity: 0.45; }
 
@@ -184,8 +186,12 @@
   .client-detail-back { font-size: 12px; color: var(--text-muted); cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-bottom: 10px; }
   .client-detail-back:hover { color: var(--moss); }
   .client-detail-name { font-family: 'Playfair Display', serif; font-size: 24px; color: var(--soil); margin-bottom: 8px; }
-  .client-meta-row { display: flex; flex-wrap: wrap; gap: 20px; font-size: 12px; color: var(--text-muted); }
+  .client-meta-row { display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--text-muted); }
+  .client-meta-items { display: flex; flex-wrap: wrap; gap: 20px; }
   .client-meta-item { display: flex; align-items: center; gap: 5px; }
+  .client-meta-item a { color: var(--moss); text-decoration: none; }
+  .client-meta-item a:hover { text-decoration: underline; }
+  .meta-icon { width: 12px; height: 12px; fill: currentColor; flex-shrink: 0; }
   .client-detail-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
 
   /* DEV PANEL */
@@ -276,7 +282,7 @@
         Clients
       </div>
       <div class="nav-item" onclick="showView('pricing')" id="nav-pricing">
-        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H3a1 1 0 01-1-1V3zm0 5a1 1 0 011-1h10a1 1 0 011 1v2a1 1 0 01-1 1H3a1 1 0 01-1-1V8zm0 5a1 1 0 011-1h10a1 1 0 011 1v1a1 1 0 01-1 1H3a1 1 0 01-1-1v-1z"/></svg>
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M4 10.781c.148 1.667 1.513 2.85 3.591 3.003V15h1.043v-1.216c2.27-.179 3.678-1.438 3.678-3.3 0-1.59-.947-2.51-2.956-3.028l-.722-.187V3.467c1.062.11 1.756.58 1.95 1.314h1.872c-.164-1.6-1.628-2.853-3.822-2.99V.5h-1.043v1.291C3.693 1.963 2.268 3.219 2.268 5.025c0 1.49.935 2.44 2.883 2.882l.654.18v3.146c-1.072-.116-1.795-.625-1.955-1.452H4zm1.57-5.73c0-.95.904-1.595 2.068-1.692v3.182c-1.49-.32-2.068-.93-2.068-1.49zm2.525 4.983c1.348.31 1.994.92 1.994 1.839 0 1.048-.87 1.73-2.29 1.845v-3.351l.296.067z"/></svg>
         Pricing
       </div>
       <div class="nav-item" onclick="showView('estimates')" id="nav-estimates">
@@ -284,7 +290,7 @@
         Estimates
       </div>
       <div class="nav-item" onclick="showView('settings')" id="nav-settings">
-        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M7.3 1a1 1 0 00-.99.858L6.1 2.9a5 5 0 00-.97.4l-.9-.55a1 1 0 00-1.24.18L1.55 4.38a1 1 0 00-.17 1.24l.55.9a5 5 0 00-.4.97l-1.04.21A1 1 0 00-.5 8.7v1.6a1 1 0 00.858.99l1.04.21a5 5 0 00.4.97l-.55.9a1 1 0 00.18 1.24l1.13 1.44a1 1 0 001.24.17l.9-.55a5 5 0 00.97.4l.21 1.04A1 1 0 007.3 17h1.4a1 1 0 00.99-.858l.21-1.04a5 5 0 00.97-.4l.9.55a1 1 0 001.24-.17l1.13-1.44a1 1 0 00.17-1.24l-.55-.9a5 5 0 00.4-.97l1.04-.21A1 1 0 0016 9.3V7.7a1 1 0 00-.858-.99l-1.04-.21a5 5 0 00-.4-.97l.55-.9a1 1 0 00-.18-1.24L12.92 2.96a1 1 0 00-1.24-.17l-.9.55a5 5 0 00-.97-.4L9.6 1.858A1 1 0 008.7 1H7.3zM8 5.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5z"/></svg>
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 01-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 01.872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 012.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 012.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 01.872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 01-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 01-2.105-.872l-.1-.34zM8 10.93a2.929 2.929 0 110-5.858 2.929 2.929 0 010 5.858z"/></svg>
         Settings
       </div>
       <div class="nav-item nav-item-dev" onclick="showView('dev')" id="nav-dev">
@@ -313,22 +319,22 @@
       <!-- DASHBOARD -->
       <div class="view active" id="view-dashboard">
         <div class="stat-row">
-          <div class="stat-card">
+          <div class="stat-card clickable" onclick="showView('clients')">
             <div class="stat-label">Clients</div>
             <div class="stat-val" id="stat-clients">0</div>
             <div class="stat-sub">in client list</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card clickable" onclick="showView('pricing')">
             <div class="stat-label">Active Products</div>
             <div class="stat-val" id="stat-products">0</div>
             <div class="stat-sub">in pricing catalog</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card clickable" onclick="showView('estimates')">
             <div class="stat-label">Saved Estimates</div>
             <div class="stat-val" id="stat-estimates">0</div>
             <div class="stat-sub">total on file</div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card clickable" onclick="showDraftEstimates()">
             <div class="stat-label">Draft Estimates</div>
             <div class="stat-val" id="stat-drafts">0</div>
             <div class="stat-sub">awaiting submission</div>
@@ -460,7 +466,7 @@
             <button class="btn btn-sm btn-straw" onclick="openNewEstimate()">+ New Estimate</button>
           </div>
           <div class="filter-bar">
-            <input type="text" placeholder="Filter by client, date, status..." oninput="renderEstimatesTable(this.value)">
+            <input type="text" id="estimates-filter-input" placeholder="Filter by client, date, status..." oninput="renderEstimatesTable(this.value)">
           </div>
           <div>
             <table>
@@ -635,6 +641,10 @@
       <div class="form-group">
         <label>Phone</label>
         <input type="text" id="client-phone" placeholder="(555) 000-0000">
+      </div>
+      <div class="form-group">
+        <label>Address</label>
+        <input type="text" id="client-address" placeholder="e.g. 123 Farm Rd, Springfield, UT 84101">
       </div>
       <div class="form-group">
         <label>Notes</label>
@@ -908,6 +918,13 @@ function showView(v) {
   if (v === 'dev') renderDevPanel();
 }
 
+function showDraftEstimates() {
+  showView('estimates');
+  const input = document.getElementById('estimates-filter-input');
+  if (input) input.value = 'draft';
+  renderEstimatesTable('draft');
+}
+
 // ==================== STATS ====================
 function updateStats() {
   const active = products.filter(p => p.status !== 'archived').length;
@@ -967,7 +984,8 @@ function renderClientsTable(filter = '') {
     c.name.toLowerCase().includes(q) ||
     c.emails.some(e => e.toLowerCase().includes(q)) ||
     (c.phone || '').includes(q) ||
-    (c.notes || '').toLowerCase().includes(q)
+    (c.notes || '').toLowerCase().includes(q) ||
+    (c.address || '').toLowerCase().includes(q)
   );
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:36px;color:var(--text-muted)">${clients.length ? 'No matches.' : 'No clients yet.'}</td></tr>`;
@@ -977,8 +995,8 @@ function renderClientsTable(filter = '') {
     const estCount = estimates.filter(e => e.client.toLowerCase() === c.name.toLowerCase()).length;
     return `<tr>
       <td><strong style="cursor:pointer;color:var(--moss)" onclick="showClientDetail(${c.id})">${c.name}</strong></td>
-      <td>${c.emails.length ? c.emails.map(e => `<span class="badge badge-gray" style="margin:1px">${e}</span>`).join('') : '<span class="text-muted">—</span>'}</td>
-      <td>${c.phone || '—'}</td>
+      <td>${c.emails.length ? c.emails.map(e => `<a href="mailto:${e}" class="badge badge-gray" style="margin:1px;text-decoration:none">${e}</a>`).join('') : '<span class="text-muted">—</span>'}</td>
+      <td>${c.phone ? `<a href="tel:${c.phone}" style="color:inherit;text-decoration:none">${c.phone}</a>` : '—'}</td>
       <td>${estCount ? `<span class="badge badge-green">${estCount}</span>` : '<span class="text-muted">0</span>'}</td>
       <td style="text-align:right">
         <button class="btn btn-sm btn-straw" onclick="showClientDetail(${c.id})">View</button>
@@ -995,6 +1013,7 @@ function openAddClientModal() {
   document.getElementById('client-name').value = '';
   document.getElementById('client-email-input').value = '';
   document.getElementById('client-phone').value = '';
+  document.getElementById('client-address').value = '';
   document.getElementById('client-notes').value = '';
   _clientEmailsEditing = [];
   renderClientEmailTags();
@@ -1009,6 +1028,7 @@ function openEditClient(id) {
   document.getElementById('client-name').value = c.name;
   document.getElementById('client-email-input').value = '';
   document.getElementById('client-phone').value = c.phone || '';
+  document.getElementById('client-address').value = c.address || '';
   document.getElementById('client-notes').value = c.notes || '';
   _clientEmailsEditing = [...c.emails];
   renderClientEmailTags();
@@ -1049,6 +1069,7 @@ function saveClient() {
     name,
     emails: [..._clientEmailsEditing],
     phone: document.getElementById('client-phone').value.trim(),
+    address: document.getElementById('client-address').value.trim(),
     notes: document.getElementById('client-notes').value.trim(),
   };
   if (editId) {
@@ -1081,7 +1102,7 @@ function autoSaveClient(name, email) {
       toast(`Email added to ${existing.name}.`);
     }
   } else {
-    clients.push({ id: genId(), name, emails: email ? [email] : [], phone: '', notes: '' });
+    clients.push({ id: genId(), name, emails: email ? [email] : [], phone: '', address: '', notes: '' });
     save();
     toast(`${name} added to client list.`);
   }
@@ -1108,11 +1129,20 @@ function renderClientDetail() {
 
   document.getElementById('detail-client-name').textContent = c.name;
 
-  const meta = [];
-  if (c.emails.length) meta.push(`<span class="client-meta-item">✉ ${c.emails.join(', ')}</span>`);
-  if (c.phone) meta.push(`<span class="client-meta-item">☎ ${c.phone}</span>`);
-  if (c.notes) meta.push(`<span class="client-meta-item" style="font-style:italic">${esc(c.notes)}</span>`);
-  document.getElementById('detail-client-meta').innerHTML = meta.join('') || '<span style="color:var(--text-muted)">No contact info</span>';
+  const contactItems = [];
+  if (c.emails.length) contactItems.push(`<span class="client-meta-item">✉ ${c.emails.map(e => `<a href="mailto:${e}">${esc(e)}</a>`).join(', ')}</span>`);
+  if (c.phone) contactItems.push(`<span class="client-meta-item">☎ <a href="tel:${c.phone}">${esc(c.phone)}</a></span>`);
+  if (c.address) {
+    const mapsUrl = 'https://maps.google.com/?q=' + encodeURIComponent(c.address);
+    contactItems.push(`<span class="client-meta-item"><svg class="meta-icon" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M4 4a4 4 0 118 0c0 1.979-1.408 4.442-2.688 6.38-.953 1.413-1.886 2.607-2.312 3.175-.426-.568-1.36-1.762-2.312-3.175C5.408 8.442 4 5.979 4 4zm4-2a2 2 0 100 4 2 2 0 000-4z"/></svg> <a href="${mapsUrl}" target="_blank" rel="noopener">${esc(c.address)}</a></span>`);
+  }
+  const contactRow = contactItems.length
+    ? `<div class="client-meta-items">${contactItems.join('')}</div>`
+    : `<div style="color:var(--text-muted)">No contact info</div>`;
+  const notesRow = c.notes
+    ? `<div class="client-meta-item"><svg class="meta-icon" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 01.707 0l3 3a.5.5 0 010 .708l-10 10a.5.5 0 01-.168.11l-5 2a.5.5 0 01-.65-.65l2-5a.5.5 0 01.11-.168l10-10zM11.207 2.5L13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 01.5.5v.5h.5a.5.5 0 01.5.5v.5h.5a.5.5 0 01.5.5v.5h.293l6.5-6.5zm-9.761 5.175l-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 015 12.5V12h-.5a.5.5 0 01-.5-.5V11h-.5a.5.5 0 01-.5-.5V10h-.5a.499.499 0 01-.175-.032l-.179.178a.5.5 0 00-.11.168l-2 5a.5.5 0 00.65.65l5-2a.5.5 0 00.168-.11l.178-.178z"/></svg> <span style="font-weight:600;color:var(--text-muted);margin-right:4px">Notes:</span>${esc(c.notes)}</div>`
+    : '';
+  document.getElementById('detail-client-meta').innerHTML = contactRow + notesRow;
 
   const clientEstimates = estimates.filter(e => e.client.toLowerCase() === c.name.toLowerCase());
   const totalValue = clientEstimates.reduce((s, e) => s + (e.total || 0), 0);
@@ -1561,7 +1591,7 @@ function addLineItemFromProduct(pid) {
 function renderLineItems() {
   const tbody = document.getElementById('line-items-body');
   if (!currentLineItems.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--text-muted);font-size:12px">No items. Use quick-add chips or click "+ Add Item".</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--text-muted);font-size:12px">No items yet. Click "+ Add Item" or browse the catalog to add products.</td></tr>';
     return;
   }
   const activeProds = products.filter(p => p.status !== 'archived');
@@ -2204,6 +2234,22 @@ async function devPushToCloud() {
 
 // Re-sync when coming back online
 window.addEventListener('online', () => { if (isSyncActive()) upsertToSupabase(); });
+
+// Re-render current view when returning to foreground so data changes appear immediately
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState !== 'visible') return;
+  const active = document.querySelector('.view.active');
+  if (!active) return;
+  const id = active.id;
+  if (id === 'view-dashboard') renderDashboard();
+  else if (id === 'view-clients') {
+    if (currentClientId) renderClientDetail();
+    else renderClientsTable();
+  }
+  else if (id === 'view-pricing') renderPricingTable();
+  else if (id === 'view-estimates') renderEstimatesTable();
+  if (isSyncActive()) upsertToSupabase();
+});
 
 // ==================== SUPABASE ====================
 const SUPABASE_URL      = 'https://rhwhfhbkzgeedwhswtel.supabase.co';
