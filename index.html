@@ -2047,11 +2047,14 @@ async function initAuth() {
   }
 }
 
+const ALLOWED_EMAILS = ['ryanmmilliken@gmail.com', 'dallen22@gmail.com'];
+
 async function requestOTP() {
   if (!db) { toast('Supabase not available.'); return; }
-  const email = document.getElementById('auth-email').value.trim();
+  const email = document.getElementById('auth-email').value.trim().toLowerCase();
   if (!email) { toast('Enter your email.'); return; }
-  const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+  if (!ALLOWED_EMAILS.includes(email)) { toast('Access is restricted to authorized users.'); return; }
+  const { error } = await db.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
   if (error) { toast('Error: ' + error.message); return; }
   document.getElementById('auth-step-1').style.display = 'none';
   document.getElementById('auth-step-2').style.display = 'block';
