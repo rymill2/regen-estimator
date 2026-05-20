@@ -30,24 +30,66 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'DM Sans', sans-serif; background: var(--mist); color: var(--text); min-height: 100vh; }
-  .app-shell { display: flex; height: 100vh; overflow: hidden; }
+  .app-shell { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* GLOBAL APP HEADER — full-width dark bar */
+  .app-header { background: var(--soil); height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px 0 0; flex-shrink: 0; z-index: 50; }
+  .app-header-left { display: flex; align-items: center; gap: 0; }
+  .app-header-brand { padding: 0 16px; }
+  .app-header-brand .brand { font-family: 'Playfair Display', serif; font-size: 14px; color: var(--straw); line-height: 1.25; letter-spacing: 0.01em; }
+  .app-header-brand .tagline { font-size: 9px; color: rgba(201,168,92,0.55); letter-spacing: 0.09em; text-transform: uppercase; margin-top: 1px; }
+  .app-header-right { display: flex; align-items: center; gap: 8px; }
+  .hamburger-btn { display: none; background: none; border: none; color: rgba(255,255,255,0.7); font-size: 20px; cursor: pointer; padding: 8px 14px; line-height: 1; flex-shrink: 0; }
+  .hamburger-btn:hover { color: white; }
+
+  /* USER AVATAR */
+  .user-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--straw); color: var(--soil); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; border: 2px solid rgba(201,168,92,0.4); transition: border-color 0.15s; }
+  .user-avatar:hover { border-color: var(--straw); }
+  .signout-btn { font-size: 11px; color: rgba(255,255,255,0.55); background: none; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 4px 9px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .signout-btn:hover { color: white; border-color: rgba(255,255,255,0.4); }
+
+  /* SYNC / OFFLINE PILLS (for dark header) */
+  .header-pill { display: none; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; border-radius: 20px; padding: 3px 9px; white-space: nowrap; }
+  .header-pill.visible { display: flex; }
+  .pill-offline { color: #fde68a; background: rgba(253,230,138,0.12); border: 1px solid rgba(253,230,138,0.25); }
+  .pill-live { color: rgba(134,239,172,0.9); background: rgba(74,124,89,0.2); border: 1px solid rgba(74,124,89,0.3); }
+  .pill-sandbox { color: #c4b5fd; background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.25); }
+  .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .pill-dot.pulse { animation: syncpulse 1.5s ease-in-out infinite; }
+
+  /* BODY — sidebar + main side-by-side */
+  .app-body { display: flex; flex: 1; overflow: hidden; }
 
   /* SIDEBAR */
-  .sidebar { width: 220px; min-width: 220px; background: var(--soil); display: flex; flex-direction: column; padding: 0; z-index: 10; }
-  .sidebar-logo { padding: 24px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-  .sidebar-logo .brand { font-family: 'Playfair Display', serif; font-size: 16px; color: var(--straw); line-height: 1.3; letter-spacing: 0.01em; }
-  .sidebar-logo .tagline { font-size: 10px; color: rgba(201,168,92,0.5); letter-spacing: 0.08em; text-transform: uppercase; margin-top: 3px; }
+  .sidebar { width: 220px; min-width: 220px; background: var(--soil); display: flex; flex-direction: column; padding: 0; }
   .nav { flex: 1; padding: 12px 0; }
   .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; font-size: 13px; color: rgba(255,255,255,0.55); cursor: pointer; border-left: 2px solid transparent; transition: all 0.15s; user-select: none; }
   .nav-item:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.04); }
   .nav-item.active { color: var(--straw); border-left-color: var(--straw); background: rgba(201,168,92,0.08); }
   .nav-icon { width: 16px; height: 16px; opacity: 0.8; }
 
+  /* NAV OVERLAY (mobile) */
+  .nav-overlay { display: none; position: fixed; inset: 0; background: rgba(42,31,20,0.55); z-index: 199; }
+  .nav-overlay.open { display: block; }
+
   /* MAIN */
   .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
-  .topbar { background: white; border-bottom: 1px solid var(--border); padding: 0 28px; height: 56px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-  .topbar-title { font-family: 'Playfair Display', serif; font-size: 18px; color: var(--soil); }
+  .topbar { background: white; border-bottom: 1px solid var(--border); padding: 0 24px; height: 50px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .topbar-title { font-family: 'Playfair Display', serif; font-size: 17px; color: var(--soil); }
   .topbar-actions { display: flex; gap: 8px; }
+
+  /* MOBILE */
+  @media (max-width: 768px) {
+    .hamburger-btn { display: flex; }
+    .app-header-brand .brand { font-size: 13px; }
+    .sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: 240px; transform: translateX(-100%); transition: transform 0.25s ease; z-index: 200; }
+    .sidebar.open { transform: translateX(0); box-shadow: 6px 0 28px rgba(0,0,0,0.35); }
+    .content { padding: 16px; }
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+    .form-row, .form-row-3 { grid-template-columns: 1fr; }
+    .client-detail-stats { grid-template-columns: repeat(2, 1fr); }
+    .topbar { padding: 0 16px; }
+  }
   .content { flex: 1; overflow-y: auto; padding: 28px; }
   .view { display: none; }
   .view.active { display: block; }
@@ -236,20 +278,7 @@
   .picker-qty input { padding: 5px 8px; font-size: 12px; text-align: center; }
   .picker-empty { padding: 36px; text-align: center; color: var(--text-muted); font-size: 13px; }
 
-  /* OFFLINE BADGE */
-  .offline-badge { display: none; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: #92400e; background: #fffbeb; border: 1px solid #fde68a; border-radius: 20px; padding: 4px 10px; }
-  .offline-badge.visible { display: flex; }
-  .offline-dot { width: 7px; height: 7px; border-radius: 50%; background: #d97706; flex-shrink: 0; }
-
-  /* SYNC / SANDBOX BADGES */
-  .sandbox-badge { display: none; align-items: center; gap: 5px; font-size: 11px; font-weight: 500; color: #5b21b6; background: #ede9fe; border: 1px solid #c4b5fd; border-radius: 20px; padding: 4px 10px; }
-  .sandbox-badge.visible { display: flex; }
-  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--moss); flex-shrink: 0; animation: syncpulse 1.5s ease-in-out infinite; }
   @keyframes syncpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
-
-  /* AUTH TOPBAR */
-  .auth-topbar { display: flex; align-items: center; gap: 8px; font-size: 12px; }
-  .auth-topbar .auth-email { color: var(--text-muted); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
   /* DEV SYNC CARD */
   .dev-sync-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--parchment); font-size: 12px; }
@@ -301,13 +330,38 @@
 </div>
 
 <div class="app-shell" style="display:none">
-  <!-- SIDEBAR -->
-  <div class="sidebar">
-    <div class="sidebar-logo">
-      <div class="brand">Regen<br>Estimator</div>
-      <div class="tagline">Fertilizer Programs</div>
+
+  <!-- GLOBAL HEADER -->
+  <div class="app-header">
+    <div class="app-header-left">
+      <button class="hamburger-btn" onclick="toggleMobileNav()" aria-label="Open menu">&#9776;</button>
+      <div class="app-header-brand">
+        <div class="brand" id="app-title">Regen<br>Estimator</div>
+        <div class="tagline" id="app-subtitle">Fertilizer Programs</div>
+      </div>
     </div>
-    <nav class="nav">
+    <div class="app-header-right">
+      <div class="header-pill pill-offline" id="offline-pill">
+        <span class="pill-dot"></span>Offline
+      </div>
+      <div class="header-pill pill-sandbox" id="sandbox-pill">
+        <span class="pill-dot"></span>Sandbox
+      </div>
+      <div class="header-pill pill-live" id="live-pill">
+        <span class="pill-dot pulse"></span>Live
+      </div>
+      <div id="user-avatar-btn" class="user-avatar" title="Signed in"></div>
+      <button class="signout-btn" id="signout-btn" onclick="signOut()" style="display:none">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="app-body">
+    <div id="nav-overlay" class="nav-overlay" onclick="closeMobileNav()"></div>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar" id="sidebar">
+      <nav class="nav">
       <div class="nav-item active" onclick="showView('dashboard')" id="nav-dashboard">
         <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
         Dashboard
@@ -317,7 +371,7 @@
         Clients
       </div>
       <div class="nav-item" onclick="showView('pricing')" id="nav-pricing">
-        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M4 10.781c.148 1.667 1.513 2.85 3.591 3.003V15h1.043v-1.216c2.27-.179 3.678-1.438 3.678-3.3 0-1.59-.947-2.51-2.956-3.028l-.722-.187V3.467c1.062.11 1.756.58 1.95 1.314h1.872c-.164-1.6-1.628-2.853-3.822-2.99V.5h-1.043v1.291C3.693 1.963 2.268 3.219 2.268 5.025c0 1.49.935 2.44 2.883 2.882l.654.18v3.146c-1.072-.116-1.795-.625-1.955-1.452H4zm1.57-5.73c0-.95.904-1.595 2.068-1.692v3.182c-1.49-.32-2.068-.93-2.068-1.49zm2.525 4.983c1.348.31 1.994.92 1.994 1.839 0 1.048-.87 1.73-2.29 1.845v-3.351l.296.067z"/></svg>
+        <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 10a2 2 0 100-4 2 2 0 000 4z"/><path d="M0 4a1 1 0 011-1h14a1 1 0 011 1v8a1 1 0 01-1 1H1a1 1 0 01-1-1V4zm3 0a2 2 0 01-2 2v4a2 2 0 012 2h10a2 2 0 012-2V6a2 2 0 01-2-2H3z"/></svg>
         Pricing
       </div>
       <div class="nav-item" onclick="showView('estimates')" id="nav-estimates">
@@ -333,23 +387,15 @@
         Dev Tools
       </div>
     </nav>
-  </div>
+    </div><!-- /sidebar -->
 
-  <!-- MAIN AREA -->
-  <div class="main">
-    <div class="topbar">
-      <div class="topbar-title" id="topbar-title">Dashboard</div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="offline-badge" id="offline-badge">
-          <div class="offline-dot"></div>
-          Offline — changes saved locally
-        </div>
-        <div class="sandbox-badge" id="sandbox-badge">Sandbox Mode</div>
-        <div class="auth-topbar" id="auth-topbar"></div>
+    <!-- MAIN AREA -->
+    <div class="main">
+      <div class="topbar">
+        <div class="topbar-title" id="topbar-title">Dashboard</div>
         <div class="topbar-actions" id="topbar-actions"></div>
       </div>
-    </div>
-    <div class="content">
+      <div class="content">
 
       <!-- DASHBOARD -->
       <div class="view active" id="view-dashboard">
@@ -526,6 +572,15 @@
           <div class="card-header"><h3>Business Settings</h3></div>
           <div class="card-body">
             <div class="form-group">
+              <label>App Title</label>
+              <input type="text" id="setting-app-title" placeholder="e.g. Regen Estimator" oninput="saveSetting()">
+            </div>
+            <div class="form-group">
+              <label>App Subtitle</label>
+              <input type="text" id="setting-app-subtitle" placeholder="e.g. Fertilizer Programs" oninput="saveSetting()">
+            </div>
+            <hr class="divider">
+            <div class="form-group">
               <label>Business Name</label>
               <input type="text" id="setting-bizname" placeholder="Your farm / business name" oninput="saveSetting()">
             </div>
@@ -649,9 +704,10 @@
         </div>
       </div>
 
-    </div>
-  </div>
-</div>
+    </div><!-- /content -->
+    </div><!-- /main -->
+  </div><!-- /app-body -->
+</div><!-- /app-shell -->
 
 <!-- ==================== MODALS ==================== -->
 
@@ -908,6 +964,7 @@ let products = JSON.parse(localStorage.getItem('regen_products') || '[]');
 let estimates = JSON.parse(localStorage.getItem('regen_estimates') || '[]');
 let clients = JSON.parse(localStorage.getItem('regen_clients') || '[]');
 let settings = JSON.parse(localStorage.getItem('regen_settings') || '{}');
+applyBranding();
 let currentLineItems = [];
 let nextId = parseInt(localStorage.getItem('regen_nextid') || '1');
 let _clientEmailsEditing = [];
@@ -938,7 +995,19 @@ function save() {
 function genId() { return nextId++; }
 
 // ==================== NAV ====================
+function toggleMobileNav() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('nav-overlay');
+  const open = sidebar.classList.toggle('open');
+  overlay.classList.toggle('open', open);
+}
+function closeMobileNav() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('nav-overlay').classList.remove('open');
+}
+
 function showView(v) {
+  closeMobileNav();
   document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('view-' + v).classList.add('active');
@@ -991,7 +1060,23 @@ function renderDashboard() {
 }
 
 // ==================== SETTINGS ====================
+function applyBranding() {
+  const title    = settings.appTitle    || 'Regen\nEstimator';
+  const subtitle = settings.appSubtitle || 'Fertilizer Programs';
+  const titleEl = document.getElementById('app-title');
+  const subEl   = document.getElementById('app-subtitle');
+  const gateTitle = document.querySelector('.auth-gate-brand .brand');
+  const gateSub   = document.querySelector('.auth-gate-brand .tagline');
+  if (titleEl)    titleEl.innerHTML    = title.replace(/\n/g, '<br>');
+  if (subEl)      subEl.textContent    = subtitle;
+  if (gateTitle)  gateTitle.innerHTML  = title.replace(/\n/g, '<br>');
+  if (gateSub)    gateSub.textContent  = subtitle;
+  document.title = title.replace(/\n/g, ' ');
+}
+
 function loadSettings() {
+  document.getElementById('setting-app-title').value    = (settings.appTitle    || '').replace(/\n/g, ' ');
+  document.getElementById('setting-app-subtitle').value = settings.appSubtitle || '';
   document.getElementById('setting-bizname').value = settings.bizname || '';
   document.getElementById('setting-name').value = settings.name || '';
   document.getElementById('setting-phone').value = settings.phone || '';
@@ -1000,12 +1085,16 @@ function loadSettings() {
   document.getElementById('setting-notes').value = settings.notes || '';
 }
 function saveSetting() {
+  const rawTitle = document.getElementById('setting-app-title').value.trim();
+  settings.appTitle    = rawTitle || undefined;
+  settings.appSubtitle = document.getElementById('setting-app-subtitle').value.trim() || undefined;
   settings.bizname = document.getElementById('setting-bizname').value;
   settings.name    = document.getElementById('setting-name').value;
   settings.phone   = document.getElementById('setting-phone').value;
   settings.email   = document.getElementById('setting-email').value;
   settings.tax     = parseFloat(document.getElementById('setting-tax').value) || 0;
   settings.notes   = document.getElementById('setting-notes').value;
+  applyBranding();
   save();
 }
 
@@ -1674,6 +1763,10 @@ function recalcTotal() {
 function previewEstimate() {
   const client = document.getElementById('est-client').value.trim();
   if (!client) { toast('Please enter a client name.'); return; }
+  // Auto-save so the estimate is always on file before previewing
+  const _eid = document.getElementById('edit-estimate-id').value;
+  const _existingStatus = _eid ? (estimates.find(e => e.id === parseInt(_eid))?.status || 'draft') : 'draft';
+  collectEstimate(_existingStatus);
   recalcTotal();
   const subtotal = calcSubtotal();
   const tax = parseFloat(document.getElementById('est-tax').value) || 0;
@@ -2052,23 +2145,22 @@ function updateAuthUI() {
   const user = currentSession?.user;
   const gate  = document.getElementById('auth-gate');
   const shell = document.querySelector('.app-shell');
-  const topbar = document.getElementById('auth-topbar');
-  const sandboxEl = document.getElementById('sandbox-badge');
 
   if (user) {
     gate.style.display  = 'none';
     shell.style.display = 'flex';
-    topbar.innerHTML = `
-      <span class="auth-email">${user.email}</span>
-      ${!sandboxMode ? `<span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;color:var(--moss)"><span class="sync-dot"></span>Syncing</span>` : ''}
-      <button class="btn btn-sm" onclick="signOut()" style="font-size:11px;padding:4px 8px">Sign Out</button>`;
+    const initial = (user.email || '?')[0].toUpperCase();
+    document.getElementById('user-avatar-btn').textContent = initial;
+    document.getElementById('user-avatar-btn').title = user.email;
+    document.getElementById('signout-btn').style.display = '';
   } else {
     gate.style.display  = 'flex';
     shell.style.display = 'none';
-    topbar.innerHTML = '';
+    document.getElementById('user-avatar-btn').textContent = '';
+    document.getElementById('signout-btn').style.display = 'none';
     gateResetForm();
   }
-  sandboxEl.classList.toggle('visible', sandboxMode);
+  updateOnlineStatus();
   if (document.getElementById('view-dev').classList.contains('active')) renderDevPanel();
 }
 
@@ -2348,19 +2440,22 @@ try {
 // ==================== INIT ====================
 updateStats();
 initAuth();
+updateOnlineStatus();
 
-// ==================== OFFLINE INDICATOR ====================
+// ==================== ONLINE / SYNC INDICATOR ====================
 function updateOnlineStatus() {
-  const badge = document.getElementById('offline-badge');
-  if (navigator.onLine) {
-    badge.classList.remove('visible');
-  } else {
-    badge.classList.add('visible');
-  }
+  const offline  = document.getElementById('offline-pill');
+  const live     = document.getElementById('live-pill');
+  const sandbox  = document.getElementById('sandbox-pill');
+  if (!offline) return;
+  const online   = navigator.onLine;
+  const syncing  = online && !sandboxMode && currentSession;
+  offline.classList.toggle('visible', !online);
+  live.classList.toggle('visible', !!syncing);
+  sandbox.classList.toggle('visible', !!sandboxMode);
 }
 window.addEventListener('online',  updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
-updateOnlineStatus();
 
 // ==================== SERVICE WORKER ====================
 if ('serviceWorker' in navigator) {
