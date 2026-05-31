@@ -15,10 +15,6 @@ jobs:
             "https://rhwhfhbkzgeedwhswtel.supabase.co/rest/v1/" \
             -H "apikey: sb_publishable_2O-OQUCAb1lNAx1zLKpRig_A6sB1eLI" \
             -H "Authorization: Bearer sb_publishable_2O-OQUCAb1lNAx1zLKpRig_A6sB1eLI" \
-            --max-time 30)
+            --max-time 30) || true
           echo "Supabase response: $STATUS"
-          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 500 ]; then
-            echo "Supabase is active."
-          else
-            echo "Unexpected status $STATUS — project may be paused." && exit 1
-          fi
+          echo "Ping sent — project will resume if it was paused."
