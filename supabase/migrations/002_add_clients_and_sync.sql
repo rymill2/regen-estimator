@@ -6,7 +6,7 @@
 -- Add local_id (app-side integer ID) for upsert matching
 ALTER TABLE products
   ADD COLUMN IF NOT EXISTS local_id  INTEGER,
-  ADD COLUMN IF NOT EXISTS desc      TEXT;
+  ADD COLUMN IF NOT EXISTS "desc"    TEXT;
 
 ALTER TABLE estimates
   ADD COLUMN IF NOT EXISTS local_id                INTEGER,
