@@ -201,8 +201,20 @@
   .archived-row td { opacity: 0.45; }
 
   /* FILTER BAR */
-  .filter-bar { padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--mist); }
-  .filter-bar input { max-width: 300px; padding: 7px 11px; font-size: 12px; }
+  .filter-bar { padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--mist); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .filter-bar input { max-width: 260px; padding: 7px 11px; font-size: 12px; }
+  .filter-bar select { padding: 7px 11px; font-size: 12px; border: 1px solid var(--border); border-radius: 7px; background: white; color: var(--text); cursor: pointer; }
+
+  /* ACTION DROPDOWN MENU */
+  .action-menu { position: relative; display: inline-block; }
+  .action-menu-btn { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; font-size: 18px; line-height: 1; cursor: pointer; color: var(--text-muted); }
+  .action-menu-btn:hover { background: var(--mist); color: var(--text); }
+  .action-dropdown { display: none; position: absolute; right: 0; top: calc(100% + 4px); z-index: 400; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 20px rgba(42,31,20,0.14); min-width: 150px; padding: 4px 0; }
+  .action-menu.open .action-dropdown { display: block; }
+  .action-dropdown-item { display: block; width: 100%; padding: 9px 15px; font-size: 13px; cursor: pointer; color: var(--text); white-space: nowrap; text-align: left; background: none; border: none; }
+  .action-dropdown-item:hover { background: var(--mist); }
+  .action-dropdown-item.danger { color: var(--danger); }
+  .action-dropdown-divider { height: 1px; background: var(--border); margin: 4px 0; }
 
   /* TYPEAHEAD */
   .typeahead-wrap { position: relative; }
@@ -450,7 +462,12 @@
               <button class="btn btn-sm btn-primary" onclick="openAddClientModal()">+ Add Client</button>
             </div>
             <div class="filter-bar">
-              <input type="text" placeholder="Filter by name, email, phone..." oninput="renderClientsTable(this.value)">
+              <input type="text" id="clients-search" placeholder="Search by name, email, phone..." oninput="renderClientsTable()">
+              <select id="clients-est-filter" onchange="renderClientsTable()">
+                <option value="">All Clients</option>
+                <option value="yes">Has Estimates</option>
+                <option value="no">No Estimates</option>
+              </select>
             </div>
             <div>
               <table>
@@ -491,7 +508,13 @@
               <h3 id="detail-estimates-heading">Estimates</h3>
             </div>
             <div class="filter-bar">
-              <input type="text" placeholder="Filter by date, status..." oninput="renderClientEstimates(this.value)">
+              <input type="text" id="client-est-search" placeholder="Search by date or total..." oninput="renderClientEstimates()">
+              <select id="client-est-status-filter" onchange="renderClientEstimates()">
+                <option value="">All Status</option>
+                <option value="draft">Draft</option>
+                <option value="sent">Sent</option>
+                <option value="archived">Archived</option>
+              </select>
             </div>
             <div>
               <table>
@@ -526,7 +549,15 @@
             <button class="btn btn-sm btn-primary" onclick="openAddProductModal()">+ Add Product</button>
           </div>
           <div class="filter-bar">
-            <input type="text" placeholder="Filter by name, category, overview..." oninput="renderPricingTable(this.value)">
+            <input type="text" id="pricing-search" placeholder="Search by name or description..." oninput="renderPricingTable()">
+            <select id="pricing-cat-filter" onchange="renderPricingTable()">
+              <option value="">All Categories</option>
+            </select>
+            <select id="pricing-status-filter" onchange="renderPricingTable()">
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+            </select>
           </div>
           <div>
             <table>
@@ -554,7 +585,13 @@
             <button class="btn btn-sm btn-straw" onclick="openNewEstimate()">+ New Estimate</button>
           </div>
           <div class="filter-bar">
-            <input type="text" id="estimates-filter-input" placeholder="Filter by client, date, status..." oninput="renderEstimatesTable(this.value)">
+            <input type="text" id="estimates-search" placeholder="Search by client name or date..." oninput="renderEstimatesTable()">
+            <select id="estimates-status-filter" onchange="renderEstimatesTable()">
+              <option value="">All Status</option>
+              <option value="draft">Draft</option>
+              <option value="sent">Sent</option>
+              <option value="archived">Archived</option>
+            </select>
           </div>
           <div>
             <table>
@@ -612,6 +649,14 @@
               <textarea id="setting-notes" placeholder="Payment due within 30 days..." oninput="saveSetting()"></textarea>
             </div>
             <div style="color:var(--moss);font-size:12px;margin-top:8px">✓ Settings auto-saved</div>
+            <hr class="divider">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div style="font-size:13px;font-weight:600">Export Backup</div>
+                <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Download all data as JSON</div>
+              </div>
+              <button class="btn btn-sm" onclick="devExport()">Export</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1061,7 +1106,16 @@ function renderDashboard() {
     ${recent.map(e => `<tr>
       <td>${e.client}</td><td>${e.date || '—'}</td><td>$${fmtMoney(e.total)}</td>
       <td>${statusBadge(e.status)}</td>
-      <td style="text-align:right"><button class="btn btn-sm" onclick="editEstimate(${e.id})">Edit</button></td>
+      <td style="text-align:right">
+        <div class="action-menu" id="am-d-${e.id}">
+          <button class="action-menu-btn" onclick="toggleActionMenu('am-d-${e.id}',event)">⋮</button>
+          <div class="action-dropdown">
+            <button class="action-dropdown-item" onclick="closeAllActionMenus();editEstimate(${e.id})">Edit</button>
+            <button class="action-dropdown-item" onclick="closeAllActionMenus();loadAndPreview(${e.id})">Preview</button>
+            ${e.status === 'draft' ? `<button class="action-dropdown-item" onclick="closeAllActionMenus();markEstimateSent(${e.id})">Mark as Sent</button>` : ''}
+          </div>
+        </div>
+      </td>
     </tr>`).join('')}
   </tbody></table>`;
 }
@@ -1106,18 +1160,22 @@ function saveSetting() {
 }
 
 // ==================== CLIENTS ====================
-function renderClientsTable(filter = '') {
+function renderClientsTable() {
   updateStats();
   const tbody = document.getElementById('clients-table-body');
-  const q = filter.toLowerCase();
-  const filtered = clients.filter(c =>
-    !q ||
-    c.name.toLowerCase().includes(q) ||
-    c.emails.some(e => e.toLowerCase().includes(q)) ||
-    (c.phone || '').includes(q) ||
-    (c.notes || '').toLowerCase().includes(q) ||
-    (c.address || '').toLowerCase().includes(q)
-  );
+  const q = (document.getElementById('clients-search')?.value || '').toLowerCase();
+  const estF = document.getElementById('clients-est-filter')?.value || '';
+  const filtered = clients.filter(c => {
+    const estCount = estimates.filter(e => e.client.toLowerCase() === c.name.toLowerCase()).length;
+    if (estF === 'yes' && !estCount) return false;
+    if (estF === 'no' && estCount) return false;
+    return !q ||
+      c.name.toLowerCase().includes(q) ||
+      c.emails.some(e => e.toLowerCase().includes(q)) ||
+      (c.phone || '').includes(q) ||
+      (c.notes || '').toLowerCase().includes(q) ||
+      (c.address || '').toLowerCase().includes(q);
+  });
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:36px;color:var(--text-muted)">${clients.length ? 'No matches.' : 'No clients yet.'}</td></tr>`;
     return;
@@ -1130,9 +1188,15 @@ function renderClientsTable(filter = '') {
       <td>${c.phone ? `<a href="tel:${c.phone}" style="color:inherit;text-decoration:none">${c.phone}</a>` : '—'}</td>
       <td>${estCount ? `<span class="badge badge-green">${estCount}</span>` : '<span class="text-muted">0</span>'}</td>
       <td style="text-align:right">
-        <button class="btn btn-sm btn-straw" onclick="showClientDetail(${c.id})">View</button>
-        <button class="btn btn-sm" style="margin-left:4px" onclick="openEditClient(${c.id})">Edit</button>
-        <button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="deleteClient(${c.id})">Remove</button>
+        <div class="action-menu" id="am-c-${c.id}">
+          <button class="action-menu-btn" onclick="toggleActionMenu('am-c-${c.id}',event)">⋮</button>
+          <div class="action-dropdown">
+            <button class="action-dropdown-item" onclick="closeAllActionMenus();showClientDetail(${c.id})">View</button>
+            <button class="action-dropdown-item" onclick="closeAllActionMenus();openEditClient(${c.id})">Edit</button>
+            <div class="action-dropdown-divider"></div>
+            <button class="action-dropdown-item danger" onclick="closeAllActionMenus();deleteClient(${c.id})">Remove</button>
+          </div>
+        </div>
       </td>
     </tr>`;
   }).join('');
@@ -1293,18 +1357,19 @@ function renderClientDetail() {
   renderClientEstimates();
 }
 
-function renderClientEstimates(filter = '') {
+function renderClientEstimates() {
   const c = clients.find(x => x.id === currentClientId);
   if (!c) return;
-  const q = (filter || '').toLowerCase();
+  const q = (document.getElementById('client-est-search')?.value || '').toLowerCase();
+  const statusF = document.getElementById('client-est-status-filter')?.value || '';
   const clientEstimates = estimates
     .filter(e => e.client.toLowerCase() === c.name.toLowerCase())
-    .filter(e => !q || (e.date || '').includes(q) || (e.status || '').includes(q) || fmtMoney(e.total).includes(q))
+    .filter(e => (!q || (e.date || '').includes(q) || fmtMoney(e.total).includes(q)) && (!statusF || e.status === statusF))
     .sort((a, b) => b.id - a.id);
 
   const tbody = document.getElementById('client-estimates-body');
   if (!clientEstimates.length) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:36px;color:var(--text-muted)">${filter ? 'No matches.' : 'No estimates yet.'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:36px;color:var(--text-muted)">${q || statusF ? 'No matches.' : 'No estimates yet.'}</td></tr>`;
     return;
   }
   tbody.innerHTML = clientEstimates.map(e => `<tr>
@@ -1312,9 +1377,15 @@ function renderClientEstimates(filter = '') {
     <td>$${fmtMoney(e.total)}</td>
     <td>${statusBadge(e.status)}</td>
     <td style="text-align:right">
-      <button class="btn btn-sm" onclick="editEstimate(${e.id})">Edit</button>
-      <button class="btn btn-sm btn-primary" style="margin-left:4px" onclick="loadAndPreview(${e.id})">Preview</button>
-      <button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="deleteEstimateFromDetail(${e.id})">Delete</button>
+      <div class="action-menu" id="am-ce-${e.id}">
+        <button class="action-menu-btn" onclick="toggleActionMenu('am-ce-${e.id}',event)">⋮</button>
+        <div class="action-dropdown">
+          <button class="action-dropdown-item" onclick="closeAllActionMenus();editEstimate(${e.id})">Edit</button>
+          <button class="action-dropdown-item" onclick="closeAllActionMenus();loadAndPreview(${e.id})">Preview</button>
+          <div class="action-dropdown-divider"></div>
+          <button class="action-dropdown-item danger" onclick="closeAllActionMenus();deleteEstimateFromDetail(${e.id})">Delete</button>
+        </div>
+      </div>
     </td>
   </tr>`).join('');
 }
@@ -1391,15 +1462,16 @@ document.addEventListener('click', e => {
 });
 
 // ==================== PRICING ====================
-function renderPricingTable(filter = '') {
+function renderPricingTable() {
   updateStats();
   const tbody = document.getElementById('pricing-table-body');
-  const q = filter.toLowerCase();
+  const q = (document.getElementById('pricing-search')?.value || '').toLowerCase();
+  const catF = document.getElementById('pricing-cat-filter')?.value || '';
+  const statusF = document.getElementById('pricing-status-filter')?.value || '';
   const filtered = products.filter(p =>
-    !q ||
-    p.name.toLowerCase().includes(q) ||
-    (p.category || '').toLowerCase().includes(q) ||
-    (p.desc || '').toLowerCase().includes(q)
+    (!q || p.name.toLowerCase().includes(q) || (p.desc || '').toLowerCase().includes(q)) &&
+    (!catF || p.category === catF) &&
+    (!statusF || p.status === statusF)
   );
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:36px;color:var(--text-muted)">${products.length ? 'No matches.' : 'No products yet.'}</td></tr>`;
@@ -1416,15 +1488,26 @@ function renderPricingTable(filter = '') {
       <td>$${fmtMoney(p.price)}</td>
       <td>${p.status === 'archived' ? '<span class="badge badge-gray">Archived</span>' : '<span class="badge badge-green">Active</span>'}</td>
       <td style="text-align:right">
-        <button class="btn btn-sm" onclick="openEditProduct(${p.id})">Edit</button>
-        ${p.status !== 'archived'
-          ? `<button class="btn btn-sm" style="margin-left:4px" onclick="archiveProduct(${p.id})">Archive</button>`
-          : `<button class="btn btn-sm btn-primary" style="margin-left:4px" onclick="unarchiveProduct(${p.id})">Restore</button>`}
-        <button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="deleteProduct(${p.id})">Remove</button>
+        <div class="action-menu" id="am-p-${p.id}">
+          <button class="action-menu-btn" onclick="toggleActionMenu('am-p-${p.id}',event)">⋮</button>
+          <div class="action-dropdown">
+            <button class="action-dropdown-item" onclick="closeAllActionMenus();openEditProduct(${p.id})">Edit</button>
+            ${p.status !== 'archived'
+              ? `<button class="action-dropdown-item" onclick="closeAllActionMenus();archiveProduct(${p.id})">Archive</button>`
+              : `<button class="action-dropdown-item" onclick="closeAllActionMenus();unarchiveProduct(${p.id})">Restore</button>`}
+            <div class="action-dropdown-divider"></div>
+            <button class="action-dropdown-item danger" onclick="closeAllActionMenus();deleteProduct(${p.id})">Remove</button>
+          </div>
+        </div>
       </td>
     </tr>`).join('');
-  const cats = [...new Set(products.map(p => p.category).filter(Boolean))];
+  const cats = [...new Set(products.map(p => p.category).filter(Boolean))].sort();
   document.getElementById('cat-list').innerHTML = cats.map(c => `<option value="${c}">`).join('');
+  const catEl = document.getElementById('pricing-cat-filter');
+  if (catEl) {
+    const cur = catEl.value;
+    catEl.innerHTML = '<option value="">All Categories</option>' + cats.map(c => `<option value="${c}"${c === cur ? ' selected' : ''}>${c}</option>`).join('');
+  }
 }
 
 function openAddProductModal() {
@@ -1514,16 +1597,15 @@ function handleCSVUpload(e) {
 }
 
 // ==================== ESTIMATES ====================
-function renderEstimatesTable(filter = '') {
+function renderEstimatesTable() {
   const tbody = document.getElementById('estimates-table-body');
-  const q = filter.toLowerCase();
+  const q = (document.getElementById('estimates-search')?.value || '').toLowerCase();
+  const statusF = document.getElementById('estimates-status-filter')?.value || '';
   const filtered = [...estimates]
     .sort((a,b) => b.id - a.id)
     .filter(e =>
-      !q ||
-      e.client.toLowerCase().includes(q) ||
-      (e.status || '').includes(q) ||
-      (e.date || '').includes(q)
+      (!q || e.client.toLowerCase().includes(q) || (e.date || '').includes(q)) &&
+      (!statusF || e.status === statusF)
     );
   if (!filtered.length) {
     tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:36px;color:var(--text-muted)">${estimates.length ? 'No matches.' : 'No estimates yet.'}</td></tr>`;
@@ -1535,9 +1617,16 @@ function renderEstimatesTable(filter = '') {
     <td>$${fmtMoney(e.total)}</td>
     <td>${statusBadge(e.status)}</td>
     <td style="text-align:right">
-      <button class="btn btn-sm" onclick="editEstimate(${e.id})">Edit</button>
-      <button class="btn btn-sm btn-primary" style="margin-left:4px" onclick="loadAndPreview(${e.id})">Preview</button>
-      <button class="btn btn-sm btn-danger" style="margin-left:4px" onclick="deleteEstimate(${e.id})">Delete</button>
+      <div class="action-menu" id="am-e-${e.id}">
+        <button class="action-menu-btn" onclick="toggleActionMenu('am-e-${e.id}',event)">⋮</button>
+        <div class="action-dropdown">
+          <button class="action-dropdown-item" onclick="closeAllActionMenus();editEstimate(${e.id})">Edit</button>
+          <button class="action-dropdown-item" onclick="closeAllActionMenus();loadAndPreview(${e.id})">Preview</button>
+          ${e.status === 'draft' ? `<button class="action-dropdown-item" onclick="closeAllActionMenus();markEstimateSent(${e.id})">Mark as Sent</button>` : ''}
+          <div class="action-dropdown-divider"></div>
+          <button class="action-dropdown-item danger" onclick="closeAllActionMenus();deleteEstimate(${e.id})">Delete</button>
+        </div>
+      </div>
     </td>
   </tr>`).join('');
 }
@@ -1930,6 +2019,28 @@ function todayStr() { return new Date().toISOString().split('T')[0]; }
 function esc(s) { return (s||'').replace(/"/g,'&quot;'); }
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function toggleActionMenu(id, e) {
+  e.stopPropagation();
+  const menu = document.getElementById(id);
+  const isOpen = menu.classList.contains('open');
+  closeAllActionMenus();
+  if (!isOpen) menu.classList.add('open');
+}
+function closeAllActionMenus() {
+  document.querySelectorAll('.action-menu.open').forEach(m => m.classList.remove('open'));
+}
+document.addEventListener('click', closeAllActionMenus);
+
+function markEstimateSent(id) {
+  const e = estimates.find(x => x.id === id);
+  if (!e) return;
+  e.status = 'sent';
+  save();
+  renderEstimatesTable();
+  updateStats();
+  toast('Estimate marked as sent.');
+}
+
 function toast(msg, dur=3000) {
   const el = document.createElement('div');
   el.className = 'toast'; el.textContent = msg;
