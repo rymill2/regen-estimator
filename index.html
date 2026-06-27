@@ -84,14 +84,15 @@
     .app-header-brand .brand { font-size: 13px; }
     .sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: 240px; transform: translateX(-100%); transition: transform 0.25s ease; z-index: 200; }
     .sidebar.open { transform: translateX(0); box-shadow: 6px 0 28px rgba(0,0,0,0.35); }
-    .content { padding: 16px; }
+    .content { padding: 0 16px 16px; }
+    .view { padding-top: 16px; }
     .stat-row { grid-template-columns: repeat(2, 1fr); }
     .form-row, .form-row-3 { grid-template-columns: 1fr; }
     .client-detail-stats { grid-template-columns: repeat(2, 1fr); }
     .topbar { padding: 0 16px; }
   }
-  .content { flex: 1; overflow-y: auto; padding: 28px; }
-  .view { display: none; }
+  .content { flex: 1; overflow-y: auto; padding: 0 28px 28px; }
+  .view { display: none; padding-top: 28px; }
   .view.active { display: block; }
 
   /* BUTTONS */
