@@ -29,7 +29,7 @@
     --radius: 10px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', sans-serif; background: var(--mist); color: var(--text); min-height: 100vh; }
+  body { font-family: 'DM Sans', sans-serif; background: #1a1008; color: var(--text); min-height: 100vh; }
   .app-shell { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
 
   /* GLOBAL APP HEADER — full-width dark bar */
@@ -73,25 +73,12 @@
   .nav-overlay.open { display: block; }
 
   /* MAIN */
-  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top-left-radius: 12px; }
-  .topbar { background: white; border-bottom: 1px solid var(--border); padding: 0 24px; height: 50px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top-left-radius: 12px; background: white; }
+  .topbar { background: white; border-bottom: 1px solid var(--border); padding: 0 24px; height: 50px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; border-top-left-radius: 12px; }
   .topbar-title { font-family: 'DM Sans', sans-serif; font-size: 17px; color: var(--soil); }
   .topbar-actions { display: flex; gap: 8px; }
 
   /* MOBILE */
-  @media (max-width: 768px) {
-    .hamburger-btn { display: flex; }
-    .app-header-brand .brand { font-size: 13px; }
-    .main { border-top-left-radius: 0; }
-    .sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: 240px; transform: translateX(-100%); transition: transform 0.25s ease; z-index: 200; }
-    .sidebar.open { transform: translateX(0); box-shadow: 6px 0 28px rgba(0,0,0,0.35); }
-    .content { padding: 0 16px 16px; }
-    .view { padding-top: 16px; }
-    .stat-row { grid-template-columns: repeat(2, 1fr); }
-    .form-row, .form-row-3 { grid-template-columns: 1fr; }
-    .client-detail-stats { grid-template-columns: repeat(2, 1fr); }
-    .topbar { padding: 0 16px; }
-  }
   .content { flex: 1; overflow-y: auto; padding: 0 28px 28px; }
   .view { display: none; padding-top: 28px; }
   .view.active { display: block; }
@@ -314,11 +301,40 @@
   .dev-toggle input:checked ~ .dev-toggle-track { background: var(--moss); }
   .dev-toggle input:checked ~ .dev-toggle-track::after { transform: translateX(16px); }
 
+  /* TABLE HORIZONTAL SCROLL */
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+
+  /* BACK TO TOP */
+  #back-to-top { position: fixed; bottom: 80px; right: 24px; width: 36px; height: 36px; border-radius: 50%; background: var(--soil); color: white; border: none; cursor: pointer; font-size: 17px; line-height: 1; display: none; align-items: center; justify-content: center; z-index: 9000; box-shadow: 0 2px 12px rgba(42,31,20,0.3); opacity: 0; transition: opacity 0.2s; }
+  #back-to-top.visible { display: flex; opacity: 1; }
+
+  /* DUPLICATE WARNING MODAL */
+  .dup-existing { background: var(--mist); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin: 12px 0; font-size: 13px; }
+  .dup-existing strong { display: block; margin-bottom: 4px; color: var(--soil); }
+  .dup-existing span { color: var(--text-muted); font-size: 12px; }
+
   /* PRINT */
   @media print {
     body * { visibility: hidden; }
     #print-area, #print-area * { visibility: visible; }
     #print-area { position: fixed; top: 0; left: 0; width: 100%; padding: 32px; }
+  }
+
+  /* MOBILE — must come last to override earlier rules */
+  @media (max-width: 768px) {
+    body { background: var(--mist); }
+    .hamburger-btn { display: flex; }
+    .app-header-brand .brand { font-size: 13px; }
+    .main { border-top-left-radius: 0; background: var(--mist); }
+    .topbar { border-top-left-radius: 0; padding: 0 16px; }
+    .sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: 240px; transform: translateX(-100%); transition: transform 0.25s ease; z-index: 200; }
+    .sidebar.open { transform: translateX(0); box-shadow: 6px 0 28px rgba(0,0,0,0.35); }
+    .content { padding: 0 16px 16px; }
+    .view { padding-top: 16px; }
+    .stat-row { grid-template-columns: repeat(2, 1fr); }
+    .form-row, .form-row-3 { grid-template-columns: 1fr; }
+    .client-detail-stats { grid-template-columns: repeat(2, 1fr); }
+    #back-to-top { right: 16px; bottom: 70px; }
   }
 </style>
 </head>
@@ -484,7 +500,7 @@
                 <option value="no">No Estimates</option>
               </select>
             </div>
-            <div>
+            <div class="table-scroll">
               <table>
                 <thead><tr>
                   <th>Name</th>
@@ -534,7 +550,7 @@
                 <option value="archived">Archived</option>
               </select>
             </div>
-            <div>
+            <div class="table-scroll">
               <table>
                 <thead><tr>
                   <th>Date</th>
@@ -576,7 +592,7 @@
               </select>
             </div>
           </div>
-          <div>
+          <div class="table-scroll">
             <table>
               <thead><tr>
                 <th>Product Name</th>
@@ -614,7 +630,7 @@
               <option value="archived">Archived</option>
             </select>
           </div>
-          <div>
+          <div class="table-scroll">
             <table>
               <thead><tr>
                 <th>Client</th>
@@ -1028,6 +1044,28 @@
   </div>
 </div>
 
+<!-- BACK TO TOP -->
+<button id="back-to-top" onclick="scrollToTop()" title="Back to top">↑</button>
+
+<!-- DUPLICATE WARNING MODAL -->
+<div class="modal-backdrop" id="modal-dup">
+  <div class="modal" style="width:420px">
+    <div class="modal-header">
+      <h3 id="dup-modal-title">Possible Duplicate</h3>
+      <button class="modal-close" onclick="closeModal('modal-dup')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--text-muted)" id="dup-modal-msg"></p>
+      <div class="dup-existing" id="dup-modal-existing"></div>
+      <p style="font-size:13px;margin-top:8px">Do you want to add it anyway?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-dup')">Cancel</button>
+      <button class="btn btn-primary" id="dup-modal-ok">Add Anyway</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST CONTAINER -->
 <div class="toast-container" id="toast-container"></div>
 
@@ -1124,7 +1162,7 @@ function renderDashboard() {
     el.innerHTML = '<div style="padding:36px;text-align:center;color:var(--text-muted);font-size:13px">No estimates yet.</div>';
     return;
   }
-  el.innerHTML = `<table><thead><tr><th>Client</th><th>Date</th><th>Total</th><th>Status</th><th style="text-align:right">Action</th></tr></thead><tbody>
+  el.innerHTML = `<div class="table-scroll"><table><thead><tr><th>Client</th><th>Date</th><th>Total</th><th>Status</th><th style="text-align:right">Action</th></tr></thead><tbody>
     ${recent.map(e => `<tr>
       <td>${e.client}</td><td>${e.date || '—'}</td><td>$${fmtMoney(e.total)}</td>
       <td>${statusBadge(e.status)}</td>
@@ -1139,7 +1177,7 @@ function renderDashboard() {
         </div>
       </td>
     </tr>`).join('')}
-  </tbody></table>`;
+  </tbody></table></div>`;
 }
 
 // ==================== SETTINGS ====================
@@ -1281,6 +1319,22 @@ function saveClient() {
     _clientEmailsEditing.push(pending);
   }
   const editId = document.getElementById('edit-client-id').value;
+  const dup = clients.find(c =>
+    c.name.toLowerCase() === name.toLowerCase() &&
+    (!editId || c.id !== parseInt(editId))
+  );
+  if (dup) {
+    showDupWarning(
+      'Duplicate Client?',
+      `A client named "${name}" already exists:`,
+      `<strong>${dup.name}</strong><span>${[...dup.emails, dup.phone].filter(Boolean).join(' · ') || 'No contact info'}</span>`,
+      () => doSaveClient(name, editId)
+    );
+    return;
+  }
+  doSaveClient(name, editId);
+}
+function doSaveClient(name, editId) {
   const obj = {
     id: editId ? parseInt(editId) : genId(),
     name,
@@ -1558,6 +1612,22 @@ function saveProduct() {
   const price = parseFloat(document.getElementById('product-price').value);
   if (!name || !unit || isNaN(price)) { toast('Please fill in Name, Unit, and Price.'); return; }
   const editId = document.getElementById('edit-product-id').value;
+  const dup = products.find(p =>
+    p.name.toLowerCase() === name.toLowerCase() &&
+    (!editId || p.id !== parseInt(editId))
+  );
+  if (dup) {
+    showDupWarning(
+      'Duplicate Product?',
+      `A product named "${name}" already exists:`,
+      `<strong>${dup.name}</strong><span>${[dup.category, dup.unit, '$' + fmtMoney(dup.price)].filter(Boolean).join(' · ')}</span>`,
+      () => doSaveProduct(name, unit, price, editId)
+    );
+    return;
+  }
+  doSaveProduct(name, unit, price, editId);
+}
+function doSaveProduct(name, unit, price, editId) {
   const obj = {
     id: editId ? parseInt(editId) : genId(),
     name, unit, price,
@@ -1691,6 +1761,23 @@ function editEstimate(id) {
 }
 
 function saveEstimateDraft() {
+  const client = document.getElementById('est-client').value.trim();
+  const date   = document.getElementById('est-date').value;
+  const editId = document.getElementById('edit-estimate-id').value;
+  if (!editId) {
+    const dup = estimates.find(e =>
+      e.client.toLowerCase() === client.toLowerCase() && e.date === date
+    );
+    if (dup) {
+      showDupWarning(
+        'Duplicate Estimate?',
+        `An estimate for "${client}" on ${date} already exists:`,
+        `<strong>${dup.client} — ${dup.date}</strong><span>$${fmtMoney(dup.total)} · ${dup.status}</span>`,
+        () => { if (collectEstimate('draft')) { renderEstimatesTable(); updateStats(); closeModal('modal-estimate'); toast('Draft saved.'); renderDashboard(); if (currentClientId) renderClientDetail(); } }
+      );
+      return;
+    }
+  }
   if (!collectEstimate('draft')) return;
   renderEstimatesTable();
   updateStats();
@@ -2041,6 +2128,27 @@ function todayStr() { return new Date().toISOString().split('T')[0]; }
 function esc(s) { return (s||'').replace(/"/g,'&quot;'); }
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+// ==================== BACK TO TOP ====================
+(function() {
+  const content = document.querySelector('.content');
+  const btn = document.getElementById('back-to-top');
+  content.addEventListener('scroll', () => btn.classList.toggle('visible', content.scrollTop > 250));
+})();
+function scrollToTop() {
+  document.querySelector('.content').scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ==================== DUPLICATE WARNING ====================
+let _dupCallback = null;
+function showDupWarning(title, msg, existingHtml, onConfirm) {
+  document.getElementById('dup-modal-title').textContent = title;
+  document.getElementById('dup-modal-msg').textContent = msg;
+  document.getElementById('dup-modal-existing').innerHTML = existingHtml;
+  _dupCallback = onConfirm;
+  document.getElementById('dup-modal-ok').onclick = () => { closeModal('modal-dup'); onConfirm(); };
+  openModal('modal-dup');
+}
+
 function toggleActionMenu(id, e) {
   e.stopPropagation();
   const menu = document.getElementById(id);
