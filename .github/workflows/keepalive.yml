@@ -2,19 +2,19 @@ name: Keep Supabase Active
 
 on:
   schedule:
-    - cron: '0 10 */3 * *'  # Every 3 days at 10:00 UTC
+    - cron: '0 10 */2 * *'  # Every 2 days at 10:00 UTC
   workflow_dispatch:         # Allow manual trigger from GitHub Actions UI
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase REST API
+      - name: Query Supabase to prevent inactivity pause
         run: |
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://rhwhfhbkzgeedwhswtel.supabase.co/rest/v1/" \
+            "https://rhwhfhbkzgeedwhswtel.supabase.co/rest/v1/products?limit=1" \
             -H "apikey: sb_publishable_2O-OQUCAb1lNAx1zLKpRig_A6sB1eLI" \
             -H "Authorization: Bearer sb_publishable_2O-OQUCAb1lNAx1zLKpRig_A6sB1eLI" \
             --max-time 30) || true
           echo "Supabase response: $STATUS"
-          echo "Ping sent — project will resume if it was paused."
+          echo "Done — database queried to register activity."
