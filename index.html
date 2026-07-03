@@ -193,7 +193,10 @@
   .filter-bar { padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--mist); display: flex; flex-direction: column; gap: 10px; position: sticky; top: 0; z-index: 50; }
   .filter-bar-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); }
   .filter-search-wrap { position: relative; width: 100%; }
-  .filter-search-wrap input { width: 100%; padding: 7px 11px; font-size: 12px; }
+  .filter-search-wrap input { width: 100%; padding: 7px 32px 7px 11px; font-size: 12px; }
+  .filter-clear { position: absolute; right: 7px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; border-radius: 50%; background: var(--text-muted); color: white; border: none; cursor: pointer; font-size: 10px; font-weight: 700; display: none; align-items: center; justify-content: center; padding: 0; z-index: 1; line-height: 1; flex-shrink: 0; }
+  .filter-clear.visible { display: flex; }
+  .filter-clear:hover { background: var(--soil); }
   .filter-selects { display: flex; gap: 8px; width: 100%; }
   .filter-selects select, .filter-bar > select { flex: 1; padding: 7px 11px; font-size: 12px; border: 1px solid var(--border); border-radius: 7px; background: white; color: var(--text); cursor: pointer; }
   .filter-typeahead { display: none; position: absolute; top: calc(100% + 2px); left: 0; right: 0; z-index: 500; background: white; border: 1px solid var(--border); border-radius: 7px; box-shadow: 0 4px 16px rgba(42,31,20,0.12); max-height: 180px; overflow-y: auto; }
@@ -492,6 +495,7 @@
               <div class="filter-bar-label">Filters</div>
               <div class="filter-search-wrap">
                 <input type="text" id="clients-search" placeholder="Search by name, email, phone..." oninput="onClientsSearchInput()" autocomplete="off">
+                <button class="filter-clear" id="clients-search-clear" tabindex="-1" onclick="clearFilterSearch('clients-search','clients-typeahead',renderClientsTable)">✕</button>
                 <div class="filter-typeahead" id="clients-typeahead"></div>
               </div>
               <select id="clients-est-filter" onchange="renderClientsTable()">
@@ -541,7 +545,8 @@
             <div class="filter-bar">
               <div class="filter-bar-label">Filters</div>
               <div class="filter-search-wrap">
-                <input type="text" id="client-est-search" placeholder="Search by date or total..." oninput="renderClientEstimates()" autocomplete="off">
+                <input type="text" id="client-est-search" placeholder="Search by date or total..." oninput="renderClientEstimates();updateClearBtn('client-est-search')" autocomplete="off">
+                <button class="filter-clear" id="client-est-search-clear" tabindex="-1" onclick="clearFilterSearch('client-est-search',null,renderClientEstimates)">✕</button>
               </div>
               <select id="client-est-status-filter" onchange="renderClientEstimates()">
                 <option value="">All Status</option>
@@ -579,6 +584,7 @@
             <div class="filter-bar-label">Filters</div>
             <div class="filter-search-wrap">
               <input type="text" id="pricing-search" placeholder="Search by name or description..." oninput="onPricingSearchInput()" autocomplete="off">
+              <button class="filter-clear" id="pricing-search-clear" tabindex="-1" onclick="clearFilterSearch('pricing-search','pricing-typeahead',renderPricingTable)">✕</button>
               <div class="filter-typeahead" id="pricing-typeahead"></div>
             </div>
             <div class="filter-selects">
@@ -621,6 +627,7 @@
             <div class="filter-bar-label">Filters</div>
             <div class="filter-search-wrap">
               <input type="text" id="estimates-search" placeholder="Search by client name..." oninput="onEstimatesSearchInput()" autocomplete="off">
+              <button class="filter-clear" id="estimates-search-clear" tabindex="-1" onclick="clearFilterSearch('estimates-search','estimates-typeahead',renderEstimatesTable)">✕</button>
               <div class="filter-typeahead" id="estimates-typeahead"></div>
             </div>
             <select id="estimates-status-filter" onchange="renderEstimatesTable()">
@@ -2167,11 +2174,25 @@ document.addEventListener('click', e => {
   if (!e.target.closest('.filter-search-wrap')) closeAllFilterTypeaheads();
 });
 
+function updateClearBtn(inputId) {
+  const btn = document.getElementById(inputId + '-clear');
+  if (btn) btn.classList.toggle('visible', !!document.getElementById(inputId)?.value);
+}
+
+function clearFilterSearch(inputId, taId, renderFn) {
+  const input = document.getElementById(inputId);
+  if (input) { input.value = ''; input.focus(); }
+  if (taId) { const ta = document.getElementById(taId); if (ta) { ta.classList.remove('open'); ta.innerHTML = ''; } }
+  updateClearBtn(inputId);
+  renderFn();
+}
+
 function buildFilterTypeahead(inputId, taId, getItems, onSelect) {
   const input = document.getElementById(inputId);
   const ta = document.getElementById(taId);
   if (!input || !ta) return;
   const q = input.value.trim().toLowerCase();
+  updateClearBtn(inputId);
   if (!q) { ta.classList.remove('open'); ta.innerHTML = ''; return; }
   const items = getItems().filter(i => i.toLowerCase().includes(q)).slice(0, 7);
   ta.innerHTML = '';
@@ -2185,10 +2206,13 @@ function buildFilterTypeahead(inputId, taId, getItems, onSelect) {
       ev.preventDefault();
       input.value = item;
       ta.classList.remove('open');
+      input.blur(); // dismiss mobile keyboard on selection
       onSelect();
     });
     ta.appendChild(div);
   });
+  // Dismiss keyboard when user starts scrolling suggestions on touch
+  ta.addEventListener('touchstart', () => input.blur(), { passive: true, once: true });
   ta.classList.add('open');
 }
 
