@@ -2,7 +2,7 @@ name: Keep Supabase Active
 
 on:
   schedule:
-    - cron: '0 10 */2 * *'  # Every 2 days at 10:00 UTC
+    - cron: '0 10 * * *'  # Every day at 10:00 UTC (tighter margin below Supabase's 7-day pause window)
   workflow_dispatch:         # Allow manual trigger from GitHub Actions UI
 
 jobs:
@@ -11,10 +11,16 @@ jobs:
     steps:
       - name: Query Supabase to prevent inactivity pause
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}\n" \
+            --retry 3 --retry-delay 5 --retry-all-errors \
             "https://rhwhfhbkzgeedwhswtel.supabase.co/rest/v1/products?limit=1" \
             -H "apikey: sb_publishable_2O-OQUCAb1lNAx1zLKpRig_A6sB1eLI" \
             -H "Authorization: Bearer sb_publishable_2O-OQUCAb1lNAx1zLKpRig_A6sB1eLI" \
-            --max-time 30) || true
+            --max-time 30 | tail -n1) || STATUS="000"
           echo "Supabase response: $STATUS"
-          echo "Done — database queried to register activity."
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 500 ]; then
+            echo "Supabase is active."
+          else
+            echo "::error::Supabase returned $STATUS — project may be paused or unreachable. Check https://supabase.com/dashboard/project/rhwhfhbkzgeedwhswtel"
+            exit 1
+          fi
